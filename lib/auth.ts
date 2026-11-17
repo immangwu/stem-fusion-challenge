@@ -114,7 +114,7 @@ export async function staffRole(email: string): Promise<{ role: 'admin' | 'jury'
 }
 
 export async function createSession(s: Session) {
-  const ttl = s.role === 'student' ? 12 * 3600 : 4 * 3600;
+  const ttl = s.role === 'student' ? 3 * 24 * 3600 : 4 * 3600;
   const token = await new SignJWT({ ...s }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime(`${ttl}s`).sign(key());
   (await cookies()).set(COOKIE, token, { httpOnly: true, secure: prod, sameSite: 'lax', path: '/', maxAge: ttl });
 }
