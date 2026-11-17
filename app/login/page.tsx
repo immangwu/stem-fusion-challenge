@@ -13,11 +13,15 @@ export default async function Login({ searchParams }: { searchParams: SP }) {
       <Flash sp={sp} />
       <form className="card" action={requestOtpAction}>
         <input type="hidden" name="kind" value={staff ? 'staff' : 'student'} />
-        <label htmlFor="identifier">{staff ? 'Staff email' : 'Roll number'}</label>
+        <label htmlFor="identifier">{staff ? 'Staff email' : 'Register number'}</label>
         <input id="identifier" name="identifier" required autoComplete={staff ? 'email' : 'username'} type={staff ? 'email' : 'text'} maxLength={200}
-          placeholder={staff ? 'name@college.edu' : 'e.g. 2026CSE001'} />
-        <p className="small mut">{staff ? 'A 6-digit code will be sent to this email.' : 'A 6-digit code will be sent to the college email linked to your roll number.'}</p>
-        <button type="submit">Send code</button>
+          inputMode={staff ? 'email' : 'numeric'} placeholder={staff ? 'name@college.edu' : '16-digit register number'} />
+        {!staff && (<>
+          <label htmlFor="dob">Date of birth</label>
+          <input id="dob" name="dob" type="date" required autoComplete="bday" />
+        </>)}
+        <p className="small mut">{staff ? 'A 6-digit code will be sent to this email.' : 'First time? You will be asked to link your own email address. After that, each login sends a 6-digit code to that email.'}</p>
+        <button type="submit">{staff ? 'Send code' : 'Continue'}</button>
       </form>
       <p className="small">{staff ? <Link href="/login">Student login</Link> : <Link href="/login?as=staff">Admin / jury login</Link>}</p>
     </div>

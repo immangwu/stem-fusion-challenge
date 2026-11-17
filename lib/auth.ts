@@ -40,29 +40,69 @@ export async function allow(k: string, max: number, windowSec: number) {
 
 const hash = (identifier: string, code: string) => createHmac('sha256', secret()).update(`${identifier}:${code}`).digest('hex');
 
-export async function issueOtp(identifier: string, to: string, name: string) {
+export async function issueOtp(identifier: string, to: string, name: string, meta: string | null = null) {
   const sql = await db();
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
   await sql`update otps set used = true where identifier = ${identifier} and not used`;
-  await sql`insert into otps(identifier, code_hash, expires_at) values (${identifier}, ${hash(identifier, code)}, now() + interval '10 minutes')`;
+  await sql`insert into otps(identifier, code_hash, expires_at, meta) values (${identifier}, ${hash(identifier, code)}, now() + interval '10 minutes', ${meta})`;
   await sendOtpEmail(to, name, code);
 }
 
-export async function checkOtp(identifier: string, code: string) {
+export async function checkOtp(identifier: string, code: string): Promise<{ ok: boolean; meta: string | null }> {
   const sql = await db();
   const rows = await sql`
-    select id, code_hash, attempts from otps
+    select id, code_hash, attempts, meta from otps
     where identifier = ${identifier} and not used and expires_at > now()
     order by created_at desc limit 1`;
   const row = rows[0];
-  if (!row || row.attempts >= 5) return false;
+  if (!row || row.attempts >= 5) return { ok: false, meta: null };
   await sql`update otps set attempts = attempts + 1 where id = ${row.id}`;
   const a = Buffer.from(row.code_hash as string, 'hex');
   const b = Buffer.from(hash(identifier, code.trim()), 'hex');
   const ok = a.length === b.length && timingSafeEqual(a, b);
   if (ok) await sql`update otps set used = true where id = ${row.id}`;
-  return ok;
+  return { ok, meta: ok ? (row.meta as string | null) : null };
 }
+
+/* ---- date of birth: stored only as a keyed hash (never in plain text) ---- */
+
+/** Accepts yyyy-mm-dd, dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy or a JS Date; returns yyyy-mm-dd or null. */
+export function parseDob(v: unknown): string | null {
+  if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+  const t = String(v ?? '').trim();
+  let y = '', m = '', d = '';
+  let x = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);
+  if (x) [, y, m, d] = x;
+  else if ((x = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(t))) [, d, m, y] = x;
+  else return null;
+  const dt = new Date(Date.UTC(+y, +m - 1, +d));
+  if (dt.getUTCFullYear() !== +y || dt.getUTCMonth() !== +m - 1 || dt.getUTCDate() !== +d) return null;
+  return `${y}-${String(+m).padStart(2, '0')}-${String(+d).padStart(2, '0')}`;
+}
+
+export const dobHash = (roll: string, dobIso: string) => createHmac('sha256', secret()).update(`dob:${roll}:${dobIso}`).digest('hex');
+
+export function dobMatches(stored: string | null | undefined, roll: string, dobIso: string) {
+  if (!stored) return false;
+  const a = Buffer.from(stored, 'hex'), b = Buffer.from(dobHash(roll, dobIso), 'hex');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/* ---- short-lived proof that the DOB step passed (used only for first-time email binding) ---- */
+const PRE = prod ? '__Host-sfc-pre' : 'sfc-pre';
+export async function setPre(roll: string) {
+  const t = await new SignJWT({ purpose: 'bind' }).setProtectedHeader({ alg: 'HS256' }).setSubject(roll).setIssuedAt().setExpirationTime('15m').sign(key());
+  (await cookies()).set(PRE, t, { httpOnly: true, secure: prod, sameSite: 'lax', path: '/', maxAge: 900 });
+}
+export async function readPre(): Promise<string | null> {
+  const t = (await cookies()).get(PRE)?.value;
+  if (!t) return null;
+  try {
+    const { payload } = await jwtVerify(t, key(), { algorithms: ['HS256'] });
+    return payload.purpose === 'bind' && payload.sub ? String(payload.sub) : null;
+  } catch { return null; }
+}
+export async function clearPre() { (await cookies()).delete(PRE); }
 
 export async function staffRole(email: string): Promise<{ role: 'admin' | 'jury'; name: string } | null> {
   const e = normEmail(email);

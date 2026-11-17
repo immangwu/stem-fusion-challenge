@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { db, audit, setSetting } from '../lib/db';
 import {
-  allow, checkOtp, clientIp, createSession, destroySession, issueOtp, normEmail, normRoll,
-  requireAdmin, requireJury, requireStudent, staffRole,
+  allow, checkOtp, clearPre, clientIp, createSession, destroySession, dobHash, dobMatches, issueOtp, normEmail, normRoll,
+  parseDob, readPre, requireAdmin, requireJury, requireStudent, setPre, staffRole,
 } from '../lib/auth';
 import { getStudent } from '../lib/data';
 import { fromLocalInput, getPhases, phaseState } from '../lib/phases';
@@ -37,48 +37,103 @@ async function guard(path: string, fn: () => Promise<string | void>) {
 
 /* ------------------------------ authentication ------------------------------ */
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Step 1. Students: register number + date of birth. Staff: email. */
 export async function requestOtpAction(fd: FormData) {
   const kind = str(fd.get('kind'), 10) === 'staff' ? 'staff' : 'student';
   const raw = str(fd.get('identifier'), 200);
   const id = kind === 'staff' ? normEmail(raw) : normRoll(raw);
-  if (!id) go(`/login${kind === 'staff' ? '?as=staff' : ''}`, 'err', 'Enter your ' + (kind === 'staff' ? 'email' : 'roll number'));
   const back = `/login${kind === 'staff' ? '?as=staff' : ''}`;
+  if (!id) go(back, 'err', 'Enter your ' + (kind === 'staff' ? 'email' : 'register number'));
 
   const ip = await clientIp();
-  if (!(await allow(`otp-ip:${ip}`, 20, 900)) || !(await allow(`otp-id:${id}`, 4, 600))) {
+  // Campus Wi-Fi shares one public IP, so the per-IP limit is generous; the per-account limit is the strict one.
+  if (!(await allow(`otp-ip:${ip}`, 400, 900)) || !(await allow(`otp-id:${id}`, kind === 'staff' ? 4 : 10, kind === 'staff' ? 600 : 3600))) {
     go(back, 'err', 'Too many attempts. Please wait a few minutes and try again.');
   }
-  try {
-    if (kind === 'student') {
-      const s = await getStudent(id);
-      if (s) await issueOtp(`s:${id}`, s.email, s.name);
-    } else {
+
+  if (kind === 'staff') {
+    try {
       const r = await staffRole(id);
       if (r) await issueOtp(`a:${id}`, id, r.name);
+    } catch (e) {
+      console.error('OTP send failed', e);
+      go(back, 'err', 'Could not send the code right now. Please contact the organisers.');
     }
+    redirect(`/login/verify?k=staff&id=${encodeURIComponent(id)}`);
+  }
+
+  const dob = parseDob(fd.get('dob'));
+  const s = await getStudent(id);
+  if (!dob || !s || !dobMatches(s.dob_hash, id, dob)) {
+    go(back, 'err', 'Register number or date of birth is incorrect. If it keeps failing, contact the organisers.');
+  }
+  if (!s.email) {
+    await setPre(id); // proof that the DOB step passed; lets the student attach their own email
+    redirect('/login/email');
+  }
+  try {
+    await issueOtp(`s:${id}`, s.email, s.name);
   } catch (e) {
     console.error('OTP send failed', e);
     go(back, 'err', 'Could not send the code right now. Please contact the organisers.');
   }
-  // Same response whether or not the account exists (prevents account probing).
-  redirect(`/login/verify?k=${kind}&id=${encodeURIComponent(id)}`);
+  redirect(`/login/verify?k=student&id=${encodeURIComponent(id)}`);
+}
+
+/** First login only: the student links their own email address, verified by a one-time code. */
+export async function bindEmailAction(fd: FormData) {
+  const roll = await readPre();
+  if (!roll) go('/login', 'err', 'Your session expired. Please start again.');
+  const email = normEmail(fd.get('email'));
+  if (!EMAIL_RE.test(email)) go('/login/email', 'err', 'Enter a valid email address.');
+  if (!(await allow(`bind:${roll}`, 6, 3600))) go('/login/email', 'err', 'Too many attempts. Please wait and try again.');
+  const s = await getStudent(roll);
+  if (!s || s.email) go('/login', 'err', 'Please log in again.');
+  const sql = await db();
+  if ((await sql`select 1 from students where lower(email) = ${email}`).length) {
+    go('/login/email', 'err', 'That email is already linked to another student. Use your own email address.');
+  }
+  try {
+    await issueOtp(`s:${roll}`, email, s.name, email);
+  } catch (e) {
+    console.error('OTP send failed', e);
+    go('/login/email', 'err', 'Could not send the code right now. Please contact the organisers.');
+  }
+  redirect(`/login/verify?k=student&id=${encodeURIComponent(roll)}&bind=1`);
 }
 
 export async function verifyOtpAction(fd: FormData) {
   const kind = str(fd.get('kind'), 10) === 'staff' ? 'staff' : 'student';
   const id = kind === 'staff' ? normEmail(fd.get('id')) : normRoll(fd.get('id'));
   const code = str(fd.get('code'), 12).replace(/\s/g, '');
-  const back = `/login/verify?k=${kind}&id=${encodeURIComponent(id)}`;
+  const back = `/login/verify?k=${kind}&id=${encodeURIComponent(id)}${fd.get('bind') ? '&bind=1' : ''}`;
   const ip = await clientIp();
-  if (!(await allow(`ver-ip:${ip}`, 40, 900)) || !(await allow(`ver-id:${id}`, 12, 900))) go(back, 'err', 'Too many attempts. Please wait and try again.');
+  if (!(await allow(`ver-ip:${ip}`, 800, 900)) || !(await allow(`ver-id:${id}`, 12, 900))) go(back, 'err', 'Too many attempts. Please wait and try again.');
   if (!/^\d{6}$/.test(code)) go(back, 'err', 'Enter the 6-digit code.');
 
-  const ok = await checkOtp(`${kind === 'staff' ? 'a' : 's'}:${id}`, code);
-  if (!ok) go(back, 'err', 'Invalid or expired code.');
+  const res = await checkOtp(`${kind === 'staff' ? 'a' : 's'}:${id}`, code);
+  if (!res.ok) go(back, 'err', 'Invalid or expired code.');
 
   if (kind === 'student') {
     const s = await getStudent(id);
     if (!s) go('/login', 'err', 'Account not found.');
+    if (res.meta) {
+      // First-time email binding: the code proved ownership of this address.
+      const pre = await readPre();
+      if (pre !== id) go('/login', 'err', 'Your session expired. Please start again.');
+      const sql = await db();
+      try {
+        const r = await sql`update students set email = ${res.meta} where roll_no = ${id} and email is null returning roll_no`;
+        if (!r.length) go('/login', 'err', 'This account is already set up. Please log in again.');
+      } catch (e) {
+        if ((e as { code?: string })?.code === '23505') go('/login/email', 'err', 'That email is already linked to another student.');
+        throw e;
+      }
+      await audit(id, 'email_bound');
+    }
+    await clearPre();
     await createSession({ sub: s.roll_no, role: 'student', name: s.name });
     redirect('/dashboard');
   }
@@ -261,13 +316,15 @@ export async function saveJuryMarksAction(fd: FormData) {
 /* ---------------------------------- admin ---------------------------------- */
 
 const HEADERS: Record<string, string[]> = {
-  roll_no: ['rollno', 'roll_no', 'roll', 'rollnumber', 'registerno', 'registrationno', 'regno', 'registernumber'],
+  roll_no: ['rollno', 'roll', 'rollnumber', 'registerno', 'registrationno', 'regno', 'registernumber', 'registrationnumber'],
   name: ['name', 'studentname', 'fullname'],
+  dob: ['dob', 'dateofbirth', 'birthdate'],
   email: ['email', 'emailid', 'collegeemail', 'mail'],
   dept: ['dept', 'department', 'branch'],
   section: ['section', 'sec', 'class'],
 };
 
+/** Only register number, name, DOB (stored as a keyed hash) and department are used; every other column is ignored. */
 export async function importRosterAction(fd: FormData) {
   const me = await requireAdmin();
   await guard('/admin/settings', async () => {
@@ -279,31 +336,46 @@ export async function importRosterAction(fd: FormData) {
     const head = rows[0].map((h) => h.toLowerCase().replace(/[^a-z]/g, ''));
     const idx: Record<string, number> = {};
     for (const [k, alts] of Object.entries(HEADERS)) idx[k] = head.findIndex((h) => alts.includes(h));
-    if (idx.roll_no < 0 || idx.name < 0 || idx.email < 0) throw new UserError('Header must include roll number, name and email columns.');
-    const out: { roll_no: string; name: string; email: string; dept: string | null; section: string | null }[] = [];
+    if (idx.roll_no < 0 || idx.name < 0 || idx.dob < 0) throw new UserError('Header must include register number, student name and DOB columns.');
+    const out: { roll_no: string; name: string; email: string | null; dept: string | null; section: string | null; dob_hash: string }[] = [];
     let skipped = 0;
     const seen = new Set<string>();
     for (const r of rows.slice(1)) {
       const roll = normRoll(r[idx.roll_no]);
-      const email = normEmail(r[idx.email]);
+      const dob = parseDob(r[idx.dob]);
       const name = String(r[idx.name] ?? '').trim().slice(0, 120);
-      if (!roll || !name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || seen.has(roll)) { skipped++; continue; }
+      const email = idx.email >= 0 ? normEmail(r[idx.email]) : '';
+      if (!roll || !name || !dob || seen.has(roll)) { skipped++; continue; }
       seen.add(roll);
       out.push({
-        roll_no: roll, name, email,
+        roll_no: roll, name, dob_hash: dobHash(roll, dob), email: EMAIL_RE.test(email) ? email : null,
         dept: idx.dept >= 0 ? String(r[idx.dept] ?? '').trim().slice(0, 80) || null : null,
         section: idx.section >= 0 ? String(r[idx.section] ?? '').trim().slice(0, 40) || null : null,
       });
     }
     if (!out.length) throw new UserError('No valid rows found.');
     const sql = await db();
-    for (let i = 0; i < out.length; i += 400) {
-      const chunk = out.slice(i, i + 400);
-      await sql`insert into students ${sql(chunk, 'roll_no', 'name', 'email', 'dept', 'section')}
-        on conflict (roll_no) do update set name = excluded.name, email = excluded.email, dept = excluded.dept, section = excluded.section`;
+    for (let i = 0; i < out.length; i += 300) {
+      const chunk = out.slice(i, i + 300);
+      await sql`insert into students ${sql(chunk, 'roll_no', 'name', 'email', 'dept', 'section', 'dob_hash')}
+        on conflict (roll_no) do update set name = excluded.name, dept = excluded.dept, section = excluded.section,
+          dob_hash = excluded.dob_hash, email = coalesce(students.email, excluded.email)`;
     }
     await audit(me.sub, 'roster_import', { imported: out.length, skipped });
-    return `Imported ${out.length} students (${skipped} rows skipped).`;
+    return `Imported ${out.length} students (${skipped} rows skipped). Date of birth is stored only as a hash.`;
+  });
+}
+
+export async function resetStudentLoginAction(fd: FormData) {
+  const me = await requireAdmin();
+  await guard('/admin/settings', async () => {
+    const roll = normRoll(fd.get('roll'));
+    const sql = await db();
+    const r = await sql`update students set email = null where roll_no = ${roll} returning roll_no`;
+    if (!r.length) throw new UserError('Register number not found.');
+    await sql`update otps set used = true where identifier = ${'s:' + roll}`;
+    await audit(me.sub, 'student_login_reset', { roll });
+    return `Login reset for ${roll}. The student can log in again with register number + date of birth and link their email.`;
   });
 }
 

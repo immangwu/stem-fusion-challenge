@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA = `
 create table if not exists settings(key text primary key, value jsonb not null);
@@ -63,4 +63,10 @@ create table if not exists jury_marks(
 
 create table if not exists audit_log(
   id bigserial primary key, at timestamptz not null default now(), actor text, action text, detail jsonb);
+
+-- v2: students log in with register number + date of birth, then verify their own email once
+alter table students add column if not exists dob_hash text;
+alter table students alter column email drop not null;
+alter table otps add column if not exists meta text;
+create unique index if not exists students_email_uq on students(lower(email)) where email is not null;
 `;

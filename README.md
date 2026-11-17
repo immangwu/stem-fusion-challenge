@@ -4,7 +4,7 @@ Event site for ~1000 first-year students: registration, teams (1–4), topic cla
 three timed PDF-report phases, evaluation results with reasons, leaderboard, admin and jury dashboards.
 
 ## Stack
-Next.js 15 (App Router) · Postgres (Neon) · Vercel Blob (private files) · email OTP login (Resend or SMTP).
+Next.js 15 (App Router) · Postgres (Neon) · Vercel Blob (private files) · login with register number + date of birth, then email OTP (Resend or SMTP).
 
 ## Timeline (India time, editable in Admin → Settings)
 | Phase | Subject | Opens | Closes |
@@ -24,7 +24,7 @@ See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `ADMIN_EMAILS`, 
 1. Create the Neon Postgres database and a Blob store in Vercel (Storage tab) and connect them to the project.
 2. Set the environment variables, deploy.
 3. Log in at `/login?as=staff` with an email in `ADMIN_EMAILS`.
-4. Admin → Settings → import the student roster CSV (roll no, name, email, department, section).
+4. Admin → Settings → import the roster CSV (register number, student name, DOB, department). DOB is stored only as a keyed hash. On first login each student links their own email, verified by a code.
 5. Share the site link with students.
 
 ## Evaluation workflow

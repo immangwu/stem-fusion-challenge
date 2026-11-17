@@ -12,10 +12,11 @@ export default async function Verify({ searchParams }: { searchParams: SP }) {
     <div style={{ maxWidth: 440, margin: '30px auto' }}>
       <h1>Enter your code</h1>
       <Flash sp={sp} />
-      <p className="mut small">If <b>{id}</b> is registered, a 6-digit code has been emailed. It expires in 10 minutes.</p>
+      <p className="mut small">If the details were correct, a 6-digit code has been emailed to the address linked to <b>{id}</b>. It expires in 10 minutes.</p>
       <form className="card" action={verifyOtpAction}>
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="id" value={id} />
+        {first(sp.bind) && <input type="hidden" name="bind" value="1" />}
         <label htmlFor="code">6-digit code</label>
         <input id="code" name="code" required inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} autoFocus />
         <p><button type="submit">Verify and log in</button></p>

@@ -2,7 +2,7 @@ import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getEvent, getPhases, toLocalInput } from '@/lib/phases';
 import { Flash, type SP } from '@/components/ui';
-import { addStaffAction, importRosterAction, removeStaffAction, saveEventAction, savePhasesAction } from '../../actions';
+import { addStaffAction, importRosterAction, removeStaffAction, resetStudentLoginAction, saveEventAction, savePhasesAction } from '../../actions';
 
 export const metadata = { title: 'Settings | Admin' };
 
@@ -21,10 +21,17 @@ export default async function Settings({ searchParams }: { searchParams: SP }) {
 
       <h2>Student roster ({cnt[0].n} students)</h2>
       <form className="card" action={importRosterAction} encType="multipart/form-data">
-        <p className="small">CSV with a header row. Required columns: <b>roll no, name, email</b>. Optional: department, section. Re-importing updates existing students. Only students on this list can log in.</p>
+        <p className="small">CSV with a header row. Required columns: <b>register number, student name, DOB</b>. Optional: department, section, email. Other columns are ignored. Date of birth is stored only as a keyed hash. Re-importing updates existing students and keeps any email they have already linked. Only students on this list can log in.</p>
         <label htmlFor="file">CSV file</label><input id="file" type="file" name="file" accept=".csv,text/csv" />
-        <label htmlFor="csv">…or paste CSV</label><textarea id="csv" name="csv" style={{ fontFamily: 'monospace' }} placeholder={'roll_no,name,email,department,section\n2026CSE001,Asha K,asha@college.edu,CSE,A'} />
+        <label htmlFor="csv">…or paste CSV</label><textarea id="csv" name="csv" style={{ fontFamily: 'monospace' }} placeholder={'register_number,student_name,dob,department\n2603713810421001,ASHA K,13.09.2008,CSE'} />
         <p><button type="submit">Import roster</button></p>
+      </form>
+
+      <h2>Reset a student's login</h2>
+      <form className="card row" action={resetStudentLoginAction}>
+        <div><label htmlFor="rr">Register number</label><input id="rr" name="roll" required maxLength={40} /></div>
+        <button type="submit" className="danger">Reset</button>
+        <p className="small mut" style={{ flexBasis: '100%' }}>Use this if a student's account was claimed with the wrong email or they lost access to it. They log in again with register number + date of birth and link a new email.</p>
       </form>
 
       <h2>Phase schedule (India time)</h2>

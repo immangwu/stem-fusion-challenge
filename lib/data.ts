@@ -15,8 +15,8 @@ export type EvalRow = {
 
 export async function getStudent(roll: string) {
   const sql = await db();
-  const r = await sql`select roll_no, name, email, dept, section from students where roll_no = ${roll}`;
-  return r[0] as { roll_no: string; name: string; email: string; dept: string | null; section: string | null } | undefined;
+  const r = await sql`select roll_no, name, email, dept, section, dob_hash from students where roll_no = ${roll}`;
+  return r[0] as { roll_no: string; name: string; email: string | null; dept: string | null; section: string | null; dob_hash: string | null } | undefined;
 }
 
 export async function myTeam(roll: string) {
