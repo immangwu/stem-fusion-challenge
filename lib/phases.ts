@@ -1,0 +1,46 @@
+import { getSetting } from './db';
+import { RUBRICS, type PhaseNo } from './rubrics';
+
+export type Phase = { n: PhaseNo; subject: string; opens: string; closes: string };
+export type PhaseState = 'upcoming' | 'open' | 'closed';
+
+// All times are India Standard Time (UTC+05:30). Admin can change them in Settings.
+export const DEFAULT_PHASES: Phase[] = [
+  { n: 1, subject: RUBRICS[1].subject, opens: '2026-11-17T00:00:00+05:30', closes: '2026-11-20T09:00:00+05:30' },
+  { n: 2, subject: RUBRICS[2].subject, opens: '2026-11-20T09:00:00+05:30', closes: '2026-11-23T09:00:00+05:30' },
+  { n: 3, subject: RUBRICS[3].subject, opens: '2026-11-23T09:00:00+05:30', closes: '2026-11-25T09:00:00+05:30' },
+];
+
+export type EventSettings = { juryDate: string; juryPublished: boolean };
+export const DEFAULT_EVENT: EventSettings = { juryDate: 'To be announced', juryPublished: false };
+
+export async function getPhases(): Promise<Phase[]> {
+  const saved = await getSetting<Phase[] | null>('phases', null);
+  return saved && saved.length === 3 ? saved : DEFAULT_PHASES;
+}
+
+export async function getEvent(): Promise<EventSettings> {
+  return { ...DEFAULT_EVENT, ...(await getSetting<Partial<EventSettings>>('event', {})) };
+}
+
+export function phaseState(p: Phase, now = new Date()): PhaseState {
+  const t = now.getTime();
+  if (t < new Date(p.opens).getTime()) return 'upcoming';
+  if (t >= new Date(p.closes).getTime()) return 'closed';
+  return 'open';
+}
+
+export function fmt(iso: string) {
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+  }) + ' IST';
+}
+
+/** For <input type="datetime-local"> in IST */
+export function toLocalInput(iso: string) {
+  const d = new Date(new Date(iso).getTime() + 5.5 * 3600 * 1000);
+  return d.toISOString().slice(0, 16);
+}
+export function fromLocalInput(v: string) {
+  return new Date(v + ':00+05:30').toISOString();
+}
