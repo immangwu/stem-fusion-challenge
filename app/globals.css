@@ -41,10 +41,10 @@ details summary{cursor:pointer;font-weight:600}
 .logobar{background:#fff;border-bottom:1px solid #e2e8f0;display:flex;justify-content:center;padding:6px 12px}
 .logos{--h:84px;display:flex;align-items:center;justify-content:center;gap:calc(var(--h)*.12);max-width:100%}
 .logos.small{--h:60px;margin-bottom:6px}
-.logos-sc{height:var(--h);width:auto;display:block}
+.logos-sc{height:var(--h);width:calc(var(--h)*1.277);flex:none;object-fit:contain;display:block}
 .logos-clip{height:var(--h);width:calc(var(--h)*5.9);overflow:hidden;flex:none}
 .logos-clip img{height:var(--h);width:auto;max-width:none;margin-left:calc(var(--h)*-1.3);display:block}
-.brandrow{display:flex;align-items:center;gap:10px}.brandrow img{height:34px;width:34px;border-radius:8px;background:#fff;padding:2px}
+.brandrow{display:flex;align-items:center;gap:10px}.brandrow img{height:36px;width:36px;object-fit:contain;border-radius:8px;background:#fff;padding:2px}
 header.top nav a{position:relative;padding:4px 2px}
 header.top nav a:after{content:'';position:absolute;left:0;bottom:-2px;height:2px;width:0;background:#fbbf24;transition:width .25s}
 header.top nav a:hover:after{width:100%}header.top nav a:hover{text-decoration:none;color:#fff}
