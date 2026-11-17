@@ -1,7 +1,8 @@
 import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { rankRows, leaderboard } from '@/lib/data';
-import { n1, first, type SP } from '@/components/ui';
+import { n1, first, Flash, type SP } from '@/components/ui';
+import { deleteTeamAction } from '../../actions';
 
 export const metadata = { title: 'Teams | Admin' };
 const PAGE = 100;
@@ -26,15 +27,20 @@ export default async function Teams({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Teams ({total})</h1>
+      <Flash sp={sp} />
       <form className="row card" method="get"><div><label htmlFor="q">Search team or leader roll no</label><input id="q" name="q" defaultValue={q} /></div><button type="submit">Search</button></form>
-      <div className="card" style={{ overflowX: 'auto' }}><table><thead><tr><th>Team</th><th>Leader</th><th>Size</th><th>Topic</th><th>P1</th><th>P2</th><th>P3</th><th>Photos</th><th>Maths</th><th>Chem</th><th>Phys</th><th>Jury</th><th>Total</th></tr></thead><tbody>
+      <div className="card" style={{ overflowX: 'auto' }}><table><thead><tr><th>Team</th><th>Leader</th><th>Size</th><th>Topic</th><th>P1</th><th>P2</th><th>P3</th><th>Photos</th><th>Maths</th><th>Chem</th><th>Phys</th><th>Jury</th><th>Total</th><th>Delete</th></tr></thead><tbody>
         {rows.map((t) => {
           const f = t.f as string[]; const r = rank.get(t.id);
           return (<tr key={t.id}><td>{t.name}</td><td>{t.leader_roll}</td><td>{t.size}</td>
             <td>{t.topic ?? (t.custom_title ? `${t.custom_title} (${t.custom_status})` : <span className="mut">none</span>)}</td>
             <td>{tick(f, '1pdf')}</td><td>{tick(f, '2pdf')}</td><td>{tick(f, '3pdf')}</td>
             <td>{[1, 2, 3].map((p) => tick(f, `${p}image`)).join(' ')}</td>
-            <td>{n1(r?.p1)}</td><td>{n1(r?.p2)}</td><td>{n1(r?.p3)}</td><td>{n1(r?.jury)}</td><td><b>{n1(r?.total)}</b></td></tr>);
+            <td>{n1(r?.p1)}</td><td>{n1(r?.p2)}</td><td>{n1(r?.p3)}</td><td>{n1(r?.jury)}</td><td><b>{n1(r?.total)}</b></td>
+            <td><form action={deleteTeamAction} style={{ display: 'flex', gap: 4 }}>
+              <input type="hidden" name="team_id" value={t.id} />
+              <input name="confirm" placeholder="type DELETE" size={10} aria-label={`Type DELETE to remove ${t.name}`} />
+              <button type="submit" className="danger">Delete</button></form></td></tr>);
         })}
       </tbody></table></div>
       <p>

@@ -12,6 +12,7 @@ import { fromLocalInput, getPhases, phaseState } from '../lib/phases';
 import { JURY_RUBRIC } from '../lib/rubrics';
 import { importResults } from '../lib/results';
 import { parseCsv } from '../lib/csv';
+import { deleteBlobs } from '../lib/storage';
 
 class UserError extends Error {}
 const str = (v: FormDataEntryValue | null, max = 500) => String(v ?? '').trim().slice(0, max);
@@ -376,6 +377,30 @@ export async function resetStudentLoginAction(fd: FormData) {
     await sql`update otps set used = true where identifier = ${'s:' + roll}`;
     await audit(me.sub, 'student_login_reset', { roll });
     return `Login reset for ${roll}. The student can log in again with register number + date of birth and link their email.`;
+  });
+}
+
+export async function deleteTeamAction(fd: FormData) {
+  const me = await requireAdmin();
+  await guard('/admin/teams', async () => {
+    const id = str(fd.get('team_id'), 60);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new UserError('Invalid team.');
+    if (str(fd.get('confirm'), 10).toLowerCase() !== 'delete') throw new UserError('Type DELETE to confirm.');
+    const sql = await db();
+    const t = (await sql`select id, name, leader_roll from teams where id = ${id}`)[0];
+    if (!t) throw new UserError('Team not found.');
+    const blobs = (await sql`select blob_path from files where team_id = ${id}`).map((r) => String(r.blob_path));
+    const rolls = (await sql`select roll_no from team_members where team_id = ${id}`).map((r) => String(r.roll_no));
+    if (!rolls.includes(t.leader_roll)) rolls.push(t.leader_roll as string);
+    await sql.begin(async (tx) => {
+      await tx`update topics set claimed_by = null where claimed_by = ${id}`;
+      await tx`delete from teams where id = ${id}`; // cascades members, files, evaluations, marks
+      await tx`update students set email = null where roll_no in ${sql(rolls)}`;
+      await tx`update otps set used = true where identifier in ${sql(rolls.map((r) => 's:' + r))}`;
+    });
+    await deleteBlobs(blobs);
+    await audit(me.sub, 'team_deleted', { team: t.name, leader: t.leader_roll, members: rolls.length, files: blobs.length });
+    return `Team "${t.name}" deleted. Its members' logins were reset: they can log in again with register number + date of birth and create a new team.`;
   });
 }
 
