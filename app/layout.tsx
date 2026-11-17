@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { logoutAction } from './actions';
+import LogoBar from '@/components/LogoBar';
 
 export const metadata: Metadata = {
   title: 'STEM Fusion Challenge: Think, Build, Prove',
@@ -15,9 +16,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        <div className="logobar"><img src="/api/assets/logos-strip.png" alt="Science Club, SNR Sons Trust, Sri Ramakrishna Institute of Technology, HIVE and ASME SRIT" /></div>
+        <div className="logobar"><LogoBar /></div>
         <header className="top">
-          <Link href="/" className="brand brandrow"><img src="/api/assets/logo-scienceclub.png" alt="" />STEM Fusion Challenge</Link>
+          <Link href="/" className="brand brandrow"><img src="/science-club-logo.png" alt="" />STEM Fusion Challenge</Link>
           <nav>
             <a href="/api/rulebook" download>Rule Book</a>
             {!s && <Link href="/rubrics">Rubrics</Link>}
@@ -30,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main>{children}</main>
         <footer className="sitefoot">
-          <img src="/api/assets/logos-strip.png" alt="" />
+          <LogoBar className="small" />
           <div>Organised by Science Club, SRIT &bull; Technical Partners: HIVE &amp; ASME SRIT</div>
           <div>STEM Fusion Challenge: Think, Build, Prove &bull; <a href="/api/rulebook" download>Download Rule Book</a></div>
         </footer>
