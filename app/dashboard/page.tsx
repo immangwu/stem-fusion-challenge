@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireStudent } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { latestFiles, leaderboard, myTeam, rankRows, teamEvals } from '@/lib/data';
+import { templateHref } from '@/lib/templates';
 import { fmt, getEvent, getPhases, phaseState } from '@/lib/phases';
 import { RUBRICS, JURY_RUBRIC, type PhaseNo } from '@/lib/rubrics';
 import { Flash, StateBadge, n1, type SP } from '@/components/ui';
@@ -96,6 +97,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
           <div className="card" key={p.n}>
             <h3>Phase {p.n}: {p.subject} <StateBadge s={st} /></h3>
             <p className="small mut">Opens {fmt(p.opens)} · Closes {fmt(p.closes)}</p>
+            <p className="small"><a className="btn ghost" href={templateHref(p.n as PhaseNo)} download>Download report template (Word)</a> <span className="mut">Fill it in, export as PDF, then upload below.</span></p>
             <div className="grid g2">
               <div>
                 <b>PDF report</b> (required){' '}

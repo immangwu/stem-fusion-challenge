@@ -1,3 +1,4 @@
+import { templateHref } from '@/lib/templates';
 import { JURY_RUBRIC, RUBRICS, CUSTOM_TOPIC_CHECKS, TIEBREAK } from '@/lib/rubrics';
 
 export const metadata = { title: 'Rubrics | STEM Fusion Challenge' };
@@ -11,6 +12,7 @@ export default function Rubrics() {
       {([1, 2, 3] as const).map((n) => (
         <div className="card" key={n}>
           <h2 style={{ marginTop: 0 }}>Phase {n}: {RUBRICS[n].subject} ({RUBRICS[n].total} marks)</h2>
+          <p><a className="btn ghost" href={templateHref(n)} download>Download Phase {n} report template (Word)</a></p>
           <table><thead><tr><th>Criterion</th><th>Marks</th><th>Full marks look like</th></tr></thead>
             <tbody>{RUBRICS[n].criteria.map((c) => <tr key={c.key}><td>{c.label}</td><td>{c.max}</td><td>{c.desc}</td></tr>)}</tbody></table>
         </div>
