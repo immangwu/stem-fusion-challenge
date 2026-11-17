@@ -6,6 +6,7 @@ export default function Rubrics() {
   return (
     <>
       <h1>Evaluation rubrics</h1>
+      <p><a className="btn" href="/api/rulebook" download>Download the full Rule Book (PDF)</a></p>
       <p className="mut">Each online phase is scored out of 20 against the rubric below. The AI-assisted evaluation is subject to admin review, and you can request one re-evaluation.</p>
       {([1, 2, 3] as const).map((n) => (
         <div className="card" key={n}>

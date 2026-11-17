@@ -18,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="top">
           <Link href="/" className="brand">STEM Fusion Challenge</Link>
           <nav>
+            <a href="/api/rulebook" download>Rule Book</a>
             {!s && <Link href="/rubrics">Rubrics</Link>}
             {!s && <Link href="/login">Login</Link>}
             {s?.role === 'student' && (<><Link href="/dashboard">Dashboard</Link><Link href="/topics">Topics</Link><Link href="/leaderboard">Leaderboard</Link><Link href="/rubrics">Rubrics</Link></>)}

@@ -108,7 +108,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
                   </form>)}
               </div>
               <div>
-                <b>Prototype photo</b> (optional{p.n === 1 ? ', no marks' : ''}){' '}
+                <b>Prototype photo</b> (required{p.n === 1 ? ', no marks' : ''}){' '}
                 {img ? <span className="small">✓ <a href={`/api/files/${img.id}`} target="_blank">{img.filename}</a></span> : <span className="mut small">not uploaded</span>}
                 {isLeader && st === 'open' && (
                   <form action="/api/upload" method="post" encType="multipart/form-data">
