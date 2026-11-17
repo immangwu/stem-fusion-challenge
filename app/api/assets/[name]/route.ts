@@ -1,4 +1,4 @@
-import { put, get } from '@vercel/blob';
+import { get } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -16,14 +16,4 @@ export async function GET(_r: Request, ctx: { params: Promise<{ name: string }> 
   return new Response(r.stream, {
     headers: { 'Content-Type': TYPES[name.split('.').pop()!.toLowerCase()], 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff' },
   });
-}
-
-// TEMPORARY one-time upload endpoint (removed after the images are stored).
-export async function POST(req: Request, ctx: { params: Promise<{ name: string }> }) {
-  const { name } = await ctx.params;
-  if (new URL(req.url).searchParams.get('k') !== 'QknRgKlD8JbCxILOzihFWgG4xE0vbsaN' || !ok(name)) return new Response('Forbidden', { status: 403 });
-  const buf = Buffer.from(await req.arrayBuffer());
-  if (buf.length > 4_000_000 || buf.length < 100) return new Response('Bad file', { status: 400 });
-  await put('site-assets/' + name, buf, { access: ACCESS, contentType: TYPES[name.split('.').pop()!.toLowerCase()], addRandomSuffix: false, allowOverwrite: true });
-  return new Response('stored ' + buf.length);
 }
