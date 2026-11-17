@@ -1,4 +1,4 @@
-import { put, get } from '@vercel/blob';
+import { get } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,13 +18,4 @@ export async function GET() {
       'X-Content-Type-Options': 'nosniff',
     },
   });
-}
-
-// TEMPORARY one-time upload endpoint (removed right after the PDF is stored).
-export async function POST(req: Request) {
-  if (new URL(req.url).searchParams.get('k') !== 'Ti5lrypwY4kdG9yKjCbjCBbeeLCrgeAI') return new Response('Forbidden', { status: 403 });
-  const buf = Buffer.from(await req.arrayBuffer());
-  if (buf.subarray(0, 5).toString('latin1') !== '%PDF-' || buf.length > 4_400_000) return new Response('Bad file', { status: 400 });
-  await put(PATH, buf, { access: ACCESS, contentType: 'application/pdf', addRandomSuffix: false, allowOverwrite: true });
-  return new Response('stored ' + buf.length);
 }
