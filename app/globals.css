@@ -89,3 +89,5 @@ header.top nav a:hover:after{width:100%}header.top nav a:hover{text-decoration:n
 @media(max-width:1100px){.logos{flex-wrap:wrap;row-gap:6px}}
 @media(max-width:800px){.hero3d{grid-template-columns:1fr;padding:30px 20px}.stage{height:200px}.cube{width:90px;height:90px}.cube i{font-size:20px}.cube i:nth-child(1){transform:translateZ(45px)}.cube i:nth-child(2){transform:rotateY(90deg) translateZ(45px)}.cube i:nth-child(3){transform:rotateY(180deg) translateZ(45px)}.cube i:nth-child(4){transform:rotateY(-90deg) translateZ(45px)}.cube i:nth-child(5){transform:rotateX(90deg) translateZ(45px)}.cube i:nth-child(6){transform:rotateX(-90deg) translateZ(45px)}.ring{width:180px;height:180px}.ring.r2{width:230px;height:230px}.logos{--h:46px}.logos.small{--h:40px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.poster-card{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:24px;align-items:center}.poster-card img{width:100%;height:auto;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35)}@media(max-width:800px){.poster-card{grid-template-columns:1fr}}

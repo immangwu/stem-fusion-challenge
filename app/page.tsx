@@ -69,6 +69,15 @@ export default async function Home() {
         </ul>
         <p className="small mut">Read every rule and all 200 topics in the <a href="/api/rulebook" download>Rule Book</a>.</p>
       </div>
+
+      <h2 className="section-title">Challenge poster</h2>
+      <div className="card poster-card">
+        <img src="/posters/stem-fusion-poster.png" alt="STEM Fusion Challenge poster: Think, Build, Prove" loading="lazy" />
+        <div>
+          <p>Share the poster with your classmates and put it up on your notice boards.</p>
+          <p><a className="btn" href="/posters/stem-fusion-poster.png" download="STEM-Fusion-Challenge-Poster.png">Download poster (PNG)</a></p>
+        </div>
+      </div>
     </>
   );
 }
