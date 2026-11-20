@@ -1,3 +1,4 @@
+import LogoBar from '@/components/LogoBar';
 import { getSession } from '@/lib/auth';
 import { leaderboard, myTeam, rankRows } from '@/lib/data';
 import { getEvent } from '@/lib/phases';
@@ -15,6 +16,7 @@ export default async function Leaderboard() {
   const rows = rankRows(raw, showJury);
   return (
     <>
+      <LogoBar />
       <h1>Leaderboard</h1>
       <p className="small mut">Updated every minute. Maths (20) + Chemistry (20) + Physics (20){showJury ? ' + Jury (40)' : ''}. {TIEBREAK}</p>
       <LeaderboardTable rows={rows} showJury={showJury} mine={mine} />

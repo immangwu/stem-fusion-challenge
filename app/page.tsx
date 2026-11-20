@@ -1,3 +1,4 @@
+import LogoBar from '@/components/LogoBar';
 import Link from 'next/link';
 import { getEvent, getPhases, phaseState, fmt } from '@/lib/phases';
 import { getSession } from '@/lib/auth';
@@ -59,6 +60,7 @@ export default async function Home() {
       </div>
       <p className="small mut">Total 100 marks: Maths 20 + Chemistry 20 + Physics 20 + Jury 40. <Link href="/rubrics">See the full rubrics</Link>.</p>
 
+      <LogoBar />
       <h2 className="section-title">Leaderboard: top 10</h2>
       <LeaderboardTable rows={top} showJury={ev.juryPublished} limit={10} />
       <p className="small mut"><Link href="/leaderboard">View the full leaderboard</Link> with every team, leader and member.</p>
