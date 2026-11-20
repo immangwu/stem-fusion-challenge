@@ -3,11 +3,14 @@ import { getEvent, getPhases, phaseState, fmt } from '@/lib/phases';
 import { getSession } from '@/lib/auth';
 import { StateBadge } from '@/components/ui';
 import Tilt from '@/components/Tilt';
+import { leaderboard, rankRows } from '@/lib/data';
+import LeaderboardTable from '@/components/LeaderboardTable';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const [phases, ev, s] = await Promise.all([getPhases(), getEvent(), getSession()]);
+  const top = rankRows(await leaderboard().catch(() => []), ev.juryPublished);
   const dash = s ? (s.role === 'student' ? '/dashboard' : s.role === 'admin' ? '/admin' : '/jury') : '/login';
   return (
     <>
@@ -55,6 +58,10 @@ export default async function Home() {
         <Tilt><div className="card"><h3>Grand finale: jury round</h3><p className="small mut">{ev.juryDate}</p><p className="small">Bring your physical model to college. Jury marks: 40.</p></div></Tilt>
       </div>
       <p className="small mut">Total 100 marks: Maths 20 + Chemistry 20 + Physics 20 + Jury 40. <Link href="/rubrics">See the full rubrics</Link>.</p>
+
+      <h2 className="section-title">Leaderboard: top 10</h2>
+      <LeaderboardTable rows={top} showJury={ev.juryPublished} limit={10} />
+      <p className="small mut"><Link href="/leaderboard">View the full leaderboard</Link> with every team, leader and member.</p>
 
       <h2 className="section-title">Team rules at a glance</h2>
       <div className="card">

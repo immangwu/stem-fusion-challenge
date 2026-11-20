@@ -47,7 +47,7 @@ export async function teamEvals(teamId: string) {
 }
 
 export type LbRow = {
-  id: string; name: string; p1: number | null; p2: number | null; p3: number | null; jury: number | null; total: number; rank: number;
+  id: string; name: string; leader?: string | null; members?: string[]; p1: number | null; p2: number | null; p3: number | null; jury: number | null; total: number; rank: number;
 };
 
 export function rankRows(rows: LbRow[], withJury: boolean): LbRow[] {
@@ -78,9 +78,19 @@ const compute = async (): Promise<LbRow[]> => {
     from teams t left join evaluations e on e.team_id = t.id and e.status = 'done'
     group by t.id, t.name`;
   const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
-  return rows.map((r) => ({ id: r.id as string, name: r.name as string, p1: n(r.p1), p2: n(r.p2), p3: n(r.p3), jury: n(r.jury), total: 0, rank: 0 }));
+  const mem = await sql`
+    select m.team_id, s.name, (s.roll_no = t.leader_roll) as is_leader
+    from team_members m join teams t on t.id = m.team_id join students s on s.roll_no = m.roll_no
+    order by m.team_id, (s.roll_no = t.leader_roll) desc, s.name`;
+  const by = new Map<string, { leader: string | null; members: string[] }>();
+  for (const m of mem) {
+    const e = by.get(m.team_id as string) ?? { leader: null, members: [] };
+    if (m.is_leader) e.leader = m.name as string; else e.members.push(m.name as string);
+    by.set(m.team_id as string, e);
+  }
+  return rows.map((r) => ({ id: r.id as string, name: r.name as string, leader: by.get(r.id as string)?.leader ?? null, members: by.get(r.id as string)?.members ?? [], p1: n(r.p1), p2: n(r.p2), p3: n(r.p3), jury: n(r.jury), total: 0, rank: 0 }));
 };
 
-export const leaderboard = unstable_cache(compute, ['leaderboard-v1'], { revalidate: 60, tags: ['leaderboard'] });
+export const leaderboard = unstable_cache(compute, ['leaderboard-v2'], { revalidate: 60, tags: ['leaderboard'] });
 
 export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'team';

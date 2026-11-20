@@ -21,7 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Link href="/" className="brand brandrow"><img src="/science-club-logo.png" alt="" />STEM Fusion Challenge</Link>
           <nav>
             <a href="/api/rulebook" download>Rule Book</a>
-            {!s && <Link href="/rubrics">Rubrics</Link>}
+            {!s && <><Link href="/leaderboard">Leaderboard</Link><Link href="/rubrics">Rubrics</Link></>}
             {!s && <Link href="/login">Login</Link>}
             {s?.role === 'student' && (<><Link href="/dashboard">Dashboard</Link><Link href="/topics">Topics</Link><Link href="/leaderboard">Leaderboard</Link><Link href="/rubrics">Rubrics</Link></>)}
             {s?.role === 'admin' && (<><Link href="/admin">Overview</Link><Link href="/admin/teams">Teams</Link><Link href="/admin/evaluations">Evaluation</Link><Link href="/admin/settings">Settings</Link><Link href="/jury">Jury</Link><Link href="/leaderboard">Leaderboard</Link></>)}
