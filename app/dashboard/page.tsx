@@ -5,6 +5,7 @@ import { latestFiles, leaderboard, myTeam, rankRows, teamEvals } from '@/lib/dat
 import { templateHref } from '@/lib/templates';
 import { fmt, getEvent, getPhases, phaseState } from '@/lib/phases';
 import { RUBRICS, JURY_RUBRIC, type PhaseNo } from '@/lib/rubrics';
+import UploadForm from '@/components/UploadForm';
 import ShareCard from '@/components/ShareCard';
 import { Flash, StateBadge, n1, type SP } from '@/components/ui';
 import { addMemberAction, createTeamAction, removeMemberAction, requestReevalAction } from '../actions';
@@ -106,23 +107,12 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
               <div>
                 <b>PDF report</b> (required){' '}
                 {pdf ? <span className="small">✓ <a href={`/api/files/${pdf.id}`} target="_blank">{pdf.filename}</a> · {fmt(pdf.created_at)}</span> : <span className="mut small">not uploaded</span>}
-                {isLeader && st === 'open' && (
-                  <form action="/api/upload" method="post" encType="multipart/form-data">
-                    <input type="hidden" name="phase" value={p.n} /><input type="hidden" name="kind" value="pdf" />
-                    <input type="file" name="file" accept="application/pdf" required />
-                    <button type="submit">{pdf ? 'Replace PDF' : 'Upload PDF'}</button> <span className="small mut">max 4 MB</span>
-                  </form>)}
+                {isLeader && st === 'open' && <UploadForm phase={p.n} kind="pdf" button={pdf ? 'Replace PDF' : 'Upload PDF'} hint="max 4 MB" />}
               </div>
               <div>
                 <b>Prototype photo</b> (required{p.n === 1 ? ', no marks' : ''}){' '}
                 {img ? <span className="small">✓ <a href={`/api/files/${img.id}`} target="_blank">{img.filename}</a></span> : <span className="mut small">not uploaded</span>}
-                {isLeader && st === 'open' && (
-                  <form action="/api/upload" method="post" encType="multipart/form-data">
-                    <input type="hidden" name="phase" value={p.n} /><input type="hidden" name="kind" value="image" />
-                    <input type="file" name="file" accept="image/jpeg,image/png" required />
-                    <label style={{ fontWeight: 400 }}><input type="checkbox" name="declare" /> This is a real photo of our model, not AI-generated.</label>
-                    <button type="submit">{img ? 'Replace photo' : 'Upload photo'}</button>
-                  </form>)}
+                {isLeader && st === 'open' && <UploadForm phase={p.n} kind="image" button={img ? 'Replace photo' : 'Upload photo'} hint="large photos are shrunk automatically" />}
               </div>
             </div>
 
