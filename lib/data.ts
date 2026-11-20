@@ -79,7 +79,7 @@ const compute = async (): Promise<LbRow[]> => {
     group by t.id, t.name`;
   const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   const mem = await sql`
-    select m.team_id, s.name, (s.roll_no = t.leader_roll) as is_leader
+    select m.team_id, btrim(regexp_replace(s.name, '\s*[(\[].*$', '')) as name, (s.roll_no = t.leader_roll) as is_leader
     from team_members m join teams t on t.id = m.team_id join students s on s.roll_no = m.roll_no
     order by m.team_id, (s.roll_no = t.leader_roll) desc, s.name`;
   const by = new Map<string, { leader: string | null; members: string[] }>();
