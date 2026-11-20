@@ -22,6 +22,7 @@ const nextConfig = {
     return config;
   },
   reactStrictMode: true,
+  outputFileTracingIncludes: { '/api/share-card': ['./public/science-club-logo.png', './public/iic-logo.png', './public/fonts/*'] },
   async headers() {
     return [
       {

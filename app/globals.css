@@ -91,3 +91,5 @@ header.top nav a:hover:after{width:100%}header.top nav a:hover{text-decoration:n
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 .poster-card{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:24px;align-items:center}.poster-card img{width:100%;height:auto;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35)}@media(max-width:800px){.poster-card{grid-template-columns:1fr}}
+
+.share-card{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:24px;align-items:start}.share-preview img{width:100%;height:auto;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.35);display:block;background:#0a1a3a}@media(max-width:720px){.share-card{grid-template-columns:1fr}.share-preview{max-width:300px}}

@@ -5,6 +5,7 @@ import { latestFiles, leaderboard, myTeam, rankRows, teamEvals } from '@/lib/dat
 import { templateHref } from '@/lib/templates';
 import { fmt, getEvent, getPhases, phaseState } from '@/lib/phases';
 import { RUBRICS, JURY_RUBRIC, type PhaseNo } from '@/lib/rubrics';
+import ShareCard from '@/components/ShareCard';
 import { Flash, StateBadge, n1, type SP } from '@/components/ui';
 import { addMemberAction, createTeamAction, removeMemberAction, requestReevalAction } from '../actions';
 
@@ -56,6 +57,9 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
         <div className="card"><div className="mut small">Jury round</div><div><b>{ev.juryDate}</b></div>
           <div className="small mut">{jury && Number(jury.n) > 0 ? `Jury score: ${n1(Number(jury.a))} / ${JURY_RUBRIC.total}` : 'Bring your physical model to college.'}</div></div>
       </div>
+
+      <h2>Share your journey</h2>
+      <ShareCard teamName={team.name} caption={`Proud to be part of the STEM Fusion Challenge: Think, Build, Prove, organised by Science Club, SRIT with HIVE and ASME SRIT as Technical Partners. Team ${team.name} is turning Maths, Physics and Chemistry into a working model. #STEMFusionChallenge #SRIT #ScienceClub #InstitutionsInnovationCouncil`} />
 
       <h2>Team</h2>
       <div className="card">
