@@ -8,7 +8,7 @@ import {
   parseDob, readPre, requireAdmin, requireJury, requireStudent, setPre, staffRole,
 } from '../lib/auth';
 import { getStudent } from '../lib/data';
-import { fromLocalInput, getPhases, phaseState } from '../lib/phases';
+import { fromLocalInput, getEvent, getPhases, phaseState } from '../lib/phases';
 import { JURY_RUBRIC } from '../lib/rubrics';
 import { importResults } from '../lib/results';
 import { parseCsv } from '../lib/csv';
@@ -454,11 +454,28 @@ export async function savePhasesAction(fd: FormData) {
 export async function saveEventAction(fd: FormData) {
   const me = await requireAdmin();
   await guard('/admin/settings', async () => {
-    await setSetting('event', { juryDate: str(fd.get('juryDate'), 120) || 'To be announced', juryPublished: fd.get('juryPublished') === 'on' });
+    const cur = await getEvent();
+    await setSetting('event', { ...cur, juryDate: str(fd.get('juryDate'), 120) || 'To be announced', juryPublished: fd.get('juryPublished') === 'on' });
     await audit(me.sub, 'event_saved');
     revalidatePath('/', 'layout');
     revalidateTag('leaderboard');
     return 'Saved.';
+  });
+}
+
+/** Admin approval gate: a phase's marks appear to students and on the public leaderboard only after this. */
+export async function publishPhaseAction(fd: FormData) {
+  const me = await requireAdmin();
+  await guard('/admin/evaluations', async () => {
+    const phase = Number(fd.get('phase'));
+    const publish = fd.get('publish') === '1';
+    if (![1, 2, 3].includes(phase)) throw new UserError('Invalid phase.');
+    const cur = await getEvent();
+    await setSetting('event', { ...cur, published: { ...cur.published, [phase]: publish } });
+    await audit(me.sub, publish ? 'phase_published' : 'phase_unpublished', { phase });
+    revalidatePath('/', 'layout');
+    revalidateTag('leaderboard');
+    return publish ? `Phase ${phase} results are now published.` : `Phase ${phase} results are hidden again.`;
   });
 }
 

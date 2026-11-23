@@ -50,9 +50,18 @@ export type LbRow = {
   id: string; name: string; leader?: string | null; members?: string[]; p1: number | null; p2: number | null; p3: number | null; jury: number | null; total: number; rank: number;
 };
 
-export function rankRows(rows: LbRow[], withJury: boolean): LbRow[] {
-  const list = rows.map((r) => ({ ...r, jury: withJury ? r.jury : null, total: (r.p1 ?? 0) + (r.p2 ?? 0) + (r.p3 ?? 0) + (withJury ? r.jury ?? 0 : 0), rank: 0 }));
-  const key = (r: LbRow) => [r.total, r.jury ?? 0, r.p3 ?? 0, r.p2 ?? 0, r.p1 ?? 0];
+export type LbView = 'overall' | 'maths' | 'chemistry' | 'physics' | 'jury';
+export const ALL_PUB = { 1: true, 2: true, 3: true } as const;
+
+/** Ranks teams. `pub` hides phases whose results are not yet published; `view` ranks by a single subject (or jury) instead of the overall total. */
+export function rankRows(rows: LbRow[], withJury: boolean, pub: Record<1 | 2 | 3, boolean> = { ...ALL_PUB }, view: LbView = 'overall'): LbRow[] {
+  const list = rows.map((r) => {
+    const p1 = pub[1] ? r.p1 : null, p2 = pub[2] ? r.p2 : null, p3 = pub[3] ? r.p3 : null, jury = withJury ? r.jury : null;
+    const total = view === 'maths' ? p1 ?? 0 : view === 'chemistry' ? p2 ?? 0 : view === 'physics' ? p3 ?? 0 : view === 'jury' ? jury ?? 0
+      : (p1 ?? 0) + (p2 ?? 0) + (p3 ?? 0) + (jury ?? 0);
+    return { ...r, p1, p2, p3, jury, total, rank: 0 };
+  });
+  const key = (r: LbRow) => view === 'overall' ? [r.total, r.jury ?? 0, r.p3 ?? 0, r.p2 ?? 0, r.p1 ?? 0] : [r.total];
   list.sort((a, b) => {
     const ka = key(a), kb = key(b);
     for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i];

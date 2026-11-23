@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const [phases, ev, s] = await Promise.all([getPhases(), getEvent(), getSession()]);
-  const top = rankRows(await leaderboard().catch(() => []), ev.juryPublished);
+  const top = rankRows(await leaderboard().catch(() => []), ev.juryPublished, ev.published);
   const dash = s ? (s.role === 'student' ? '/dashboard' : s.role === 'admin' ? '/admin' : '/jury') : '/login';
   return (
     <>
@@ -63,7 +63,8 @@ export default async function Home() {
       <LogoBar />
       <h2 className="section-title">Leaderboard: top 10</h2>
       <LeaderboardTable rows={top} showJury={ev.juryPublished} limit={10} />
-      <p className="small mut"><Link href="/leaderboard">View the full leaderboard</Link> with every team, leader and member.</p>
+      <p className="small mut"><Link href="/leaderboard">View the full leaderboard</Link> with every team, leader and member. Also see the separate boards:{' '}
+        <Link href="/leaderboard?view=maths">Maths</Link> · <Link href="/leaderboard?view=chemistry">Chemistry</Link> · <Link href="/leaderboard?view=physics">Physics</Link>.</p>
 
       <h2 className="section-title">Team rules at a glance</h2>
       <div className="card">

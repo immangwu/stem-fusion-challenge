@@ -11,8 +11,11 @@ export const DEFAULT_PHASES: Phase[] = [
   { n: 3, subject: RUBRICS[3].subject, opens: '2026-11-23T09:00:00+05:30', closes: '2026-11-25T09:00:00+05:30' },
 ];
 
-export type EventSettings = { juryDate: string; juryPublished: boolean };
-export const DEFAULT_EVENT: EventSettings = { juryDate: 'To be announced', juryPublished: false };
+export type PubMap = Record<1 | 2 | 3, boolean>;
+export type EventSettings = { juryDate: string; juryPublished: boolean; published: PubMap };
+/** Phase results become visible to students and the public only after an admin publishes them. Phase 1 was already public. */
+export const DEFAULT_PUBLISHED: PubMap = { 1: true, 2: false, 3: false };
+export const DEFAULT_EVENT: EventSettings = { juryDate: 'To be announced', juryPublished: false, published: DEFAULT_PUBLISHED };
 
 export async function getPhases(): Promise<Phase[]> {
   const saved = await getSetting<Phase[] | null>('phases', null);
@@ -20,7 +23,8 @@ export async function getPhases(): Promise<Phase[]> {
 }
 
 export async function getEvent(): Promise<EventSettings> {
-  return { ...DEFAULT_EVENT, ...(await getSetting<Partial<EventSettings>>('event', {})) };
+  const saved = await getSetting<Partial<EventSettings>>('event', {});
+  return { ...DEFAULT_EVENT, ...saved, published: { ...DEFAULT_PUBLISHED, ...(saved.published ?? {}) } };
 }
 
 export function phaseState(p: Phase, now = new Date()): PhaseState {

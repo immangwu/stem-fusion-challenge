@@ -1,10 +1,10 @@
 import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { fmt, getPhases, phaseState } from '@/lib/phases';
+import { fmt, getEvent, getPhases, phaseState } from '@/lib/phases';
 import { RUBRICS, type PhaseNo } from '@/lib/rubrics';
 import { ZIP_BATCH } from '@/lib/const';
 import { Flash, StateBadge, n1, type SP } from '@/components/ui';
-import { importResultsAction, overrideScoreAction, reviewCustomTopicAction } from '../../actions';
+import { importResultsAction, overrideScoreAction, publishPhaseAction, reviewCustomTopicAction } from '../../actions';
 
 export const metadata = { title: 'Evaluation | Admin' };
 
@@ -13,6 +13,7 @@ export default async function Evaluations({ searchParams }: { searchParams: SP }
   const sp = await searchParams;
   const sql = await db();
   const phases = await getPhases();
+  const ev = await getEvent();
   const teams = Number((await sql`select count(*)::int as n from teams`)[0].n);
 
   const stats = await sql`
@@ -36,7 +37,7 @@ export default async function Evaluations({ searchParams }: { searchParams: SP }
       <Flash sp={sp} />
       <div className="card">
         <b>Workflow:</b> after a phase closes, download the submissions below (ZIP batches of {ZIP_BATCH} teams plus a manifest), give them to Claude in chat to evaluate against the rubric,
-        then import the results file Claude produces. Scores and the reason for every criterion appear on each team's dashboard and in the leaderboard immediately.
+        then import the results file Claude produces. Imported results stay <b>hidden</b> from students and the public leaderboard until you review the preview and press <b>Publish</b> for that phase.
       </div>
 
       {phases.map((p) => {
@@ -53,6 +54,10 @@ export default async function Evaluations({ searchParams }: { searchParams: SP }
               {Array.from({ length: batches }, (_, i) => (
                 <a key={i} className="btn" style={{ marginRight: 6 }} href={`/api/admin/zip?phase=${p.n}&batch=${i}`}>ZIP {i + 1}/{batches}</a>))}
               {!batches && <span className="mut small">No submissions yet.</span>}</p>
+            <p className="small"><b>Results visibility:</b> {ev.published[p.n] ? <span className="badge b-open">Published</span> : <span className="badge b-up">Hidden (not approved)</span>}{' '}
+              <a href={`/leaderboard?view=${p.n === 1 ? 'maths' : p.n === 2 ? 'chemistry' : 'physics'}&preview=1`} target="_blank">Preview {r.subject} leaderboard</a></p>
+            <form action={publishPhaseAction}><input type="hidden" name="phase" value={p.n} /><input type="hidden" name="publish" value={ev.published[p.n] ? '0' : '1'} />
+              <button type="submit" className={ev.published[p.n] ? 'sec' : ''}>{ev.published[p.n] ? `Unpublish Phase ${p.n} results` : `Approve and publish Phase ${p.n} results`}</button></form>
           </div>
         );
       })}

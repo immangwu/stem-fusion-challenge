@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
   const font = (f: string) => readFile(path.join(process.cwd(), 'public', 'fonts', f));
   const [ev, lb, sc, iic, fb, fx] = await Promise.all([getEvent(), leaderboard(), dataUri('science-club-logo.png'), dataUri('iic-logo.png'), font('Inter-Bold.otf'), font('Inter-ExtraBold.otf')]);
-  const rows = rankRows(lb, ev.juryPublished);
+  const rows = rankRows(lb, ev.juryPublished, ev.published);
   const me = rows.find((r) => r.id === data.team.id);
   const scored = !!me && me.p1 !== null;
   const names = [data.members.find((m) => m.roll_no === data.team.leader_roll), ...data.members.filter((m) => m.roll_no !== data.team.leader_roll)]

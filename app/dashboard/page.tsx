@@ -43,7 +43,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
   const [phases, ev, files, evals, lb] = await Promise.all([getPhases(), getEvent(), latestFiles(team.id), teamEvals(team.id), leaderboard()]);
   const sql = await db();
   const jury = ev.juryPublished ? (await sql`select avg(total) as a, count(*)::int as n from jury_marks where team_id = ${team.id}`)[0] : null;
-  const ranked = rankRows(lb, ev.juryPublished);
+  const ranked = rankRows(lb, ev.juryPublished, ev.published);
   const rank = ranked.find((r) => r.id === team.id);
   const locked = phaseState(phases[0]) === 'closed';
   const hasTopic = !!topic || team.custom_status === 'approved';
@@ -116,7 +116,8 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
               </div>
             </div>
 
-            {e?.status === 'done' && (
+            {e?.status === 'done' && !ev.published[p.n as 1 | 2 | 3] && <p className="small mut" style={{ marginTop: 12 }}>Evaluation is complete. Your result will appear here when the organisers publish this phase.</p>}
+            {e?.status === 'done' && ev.published[p.n as 1 | 2 | 3] && (
               <div style={{ marginTop: 12 }}>
                 <hr style={{ border: 0, borderTop: '1px solid var(--line)' }} />
                 <div><b>Result: {n1(score)} / {rubric.total}</b> <span className="small mut">AI-assisted evaluation, subject to admin review</span></div>
@@ -134,7 +135,8 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
                         <p><button type="submit" className="sec">Send request</button></p></form></details>)}
               </div>)}
             {e?.status === 'needs_review' && <p className="small">Your report is under manual review by the organisers (for example, the file was unreadable). Please check the notice from the organisers.</p>}
-            {!e && st === 'closed' && (pdf ? <p className="small mut">Submitted. Evaluation in progress.</p> : <p className="small" style={{ color: 'var(--bad)' }}>No PDF was submitted for this phase (0 marks).</p>)}
+            {!e && st === 'closed' && !pdf && <p className="small" style={{ color: 'var(--bad)' }}>No PDF was submitted for this phase (0 marks).</p>}
+            {!e && st === 'closed' && pdf && <p className="small mut">Submitted. Evaluation in progress.</p>}
           </div>
         );
       })}
