@@ -19,7 +19,6 @@ export default async function Jury({ searchParams }: { searchParams: SP }) {
       (select string_agg(s.name, ', ' order by s.name) from team_members m join students s using (roll_no) where m.team_id = t.id) as members,
       (select id from files where team_id = t.id and kind = 'image' order by phase desc, created_at desc limit 1) as img,
       (select id from files where team_id = t.id and kind = 'pdf' order by phase desc, created_at desc limit 1) as pdf,
-      (select scores from jury_marks where team_id = t.id and juror = ${me.sub}) as mine,
       (select total from jury_marks where team_id = t.id and juror = ${me.sub}) as mine_total
     from teams t where (${q} = '' or t.name ilike ${like}) order by t.name limit ${PAGE} offset ${page * PAGE}`;
   const total = Number((await sql`select count(*)::int as n from teams t where (${q} = '' or t.name ilike ${like})`)[0].n);
@@ -28,7 +27,7 @@ export default async function Jury({ searchParams }: { searchParams: SP }) {
     <>
       <h1>Jury marks ({JURY_RUBRIC.total})</h1>
       <Flash sp={sp} />
-      <p className="small mut">Enter marks per criterion (steps of 0.5). Each team's final jury score is the average across jurors. You can edit your marks until the admin publishes.</p>
+      <p className="small mut">Enter only the <b>final mark out of {JURY_RUBRIC.total}</b> from your signed paper score sheet (steps of 0.5). Each team's final jury score is the average across jurors. You can edit your marks until the admin publishes.</p>
       <form className="row card" method="get"><div><label htmlFor="q">Find team</label><input id="q" name="q" defaultValue={q} /></div><button type="submit">Search</button></form>
       {teams.map((t) => (
         <div className="card" key={t.id}>
@@ -37,11 +36,8 @@ export default async function Jury({ searchParams }: { searchParams: SP }) {
           <p className="small">{t.pdf && <a href={`/api/files/${t.pdf}`} target="_blank">Latest report</a>} {t.img && <> · <a href={`/api/files/${t.img}`} target="_blank">Prototype photo</a></>}</p>
           <form action={saveJuryMarksAction}>
             <input type="hidden" name="teamId" value={t.id} /><input type="hidden" name="back" value={back} />
-            <div className="grid g3">
-              {JURY_RUBRIC.criteria.map((c) => (
-                <div key={c.key}><label htmlFor={`${t.id}${c.key}`}>{c.label} (0–{c.max})</label>
-                  <input id={`${t.id}${c.key}`} name={c.key} type="number" step="0.5" min="0" max={c.max} required defaultValue={t.mine?.[c.key] ?? ''} /></div>))}
-            </div>
+            <label htmlFor={`${t.id}-total`}>Final jury mark (0–{JURY_RUBRIC.total})</label>
+            <input id={`${t.id}-total`} name="total" type="number" step="0.5" min="0" max={JURY_RUBRIC.total} required defaultValue={t.mine_total ?? ''} style={{ maxWidth: 160 }} />
             <p><button type="submit">Save marks</button></p>
           </form>
         </div>))}

@@ -295,14 +295,10 @@ export async function saveJuryMarksAction(fd: FormData) {
   const teamId = str(fd.get('teamId'), 50);
   const back = str(fd.get('back'), 200).startsWith('/jury') ? str(fd.get('back'), 200) : '/jury';
   await guard(back, async () => {
+    // Only the final mark (out of 40) is entered; the per-criterion breakdown stays on the paper sheets.
+    const total = Math.round(Number(fd.get('total')) * 2) / 2;
+    if (!str(fd.get('total'), 10) || !Number.isFinite(total) || total < 0 || total > JURY_RUBRIC.total) throw new UserError(`Enter the final mark from 0 to ${JURY_RUBRIC.total}.`);
     const scores: Record<string, number> = {};
-    let total = 0;
-    for (const c of JURY_RUBRIC.criteria) {
-      const v = Math.round(Number(fd.get(c.key)) * 2) / 2;
-      if (!Number.isFinite(v) || v < 0 || v > c.max) throw new UserError(`${c.label}: enter a value from 0 to ${c.max}.`);
-      scores[c.key] = v;
-      total += v;
-    }
     const sql = await db();
     if (!(await sql`select 1 from teams where id = ${teamId}`).length) throw new UserError('Team not found.');
     await sql`
