@@ -88,6 +88,34 @@ export async function GET(req: Request) {
     rows = [['room', 'team', 'leader_roll', 'members_depts']];
     teams.forEach((t) => rows.push([room.get(t.name) || '242 (Hall)', t.name, t.leader, t.d.join('/')]));
     rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[1]).localeCompare(String(b[1])));
+  } else if (type === 'seatingfull') {
+    // 10 teams per classroom; majority-department teams fill their rooms (purest teams first), the rest go to Hall 242.
+    const ROOMS: Record<string, string[]> = { CSE: ['237 (CSE A)', '238 (CSE B)', '239 (CSE C)'], IT: ['240 (IT)'], AIDS: ['244 (AIDS)'], ECE: ['245 (ECE A)', '246 (ECE B)'], EEE: ['247 (EEE)'] };
+    const r = await sql`
+      select t.name, t.leader_roll, coalesce((select title from topics where claimed_by = t.id), t.custom->>'title') as topic,
+        (select array_agg(s.name || ' [' || coalesce(s.dept, '?') || ']' || case when s.roll_no = t.leader_roll then ' (Leader)' else '' end order by (s.roll_no = t.leader_roll) desc, s.roll_no)
+         from team_members m join students s using (roll_no) where m.team_id = t.id) as members,
+        (select array_agg(coalesce(s.dept, '?')) from team_members m join students s using (roll_no) where m.team_id = t.id) as depts
+      from teams t order by t.leader_roll`;
+    const teams = r.map((x) => {
+      const d: string[] = x.depts || [];
+      const cnt: Record<string, number> = {};
+      d.forEach((k) => (cnt[k] = (cnt[k] || 0) + 1));
+      const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+      const major = top && top[1] * 2 > d.length ? top[0] : null;
+      return { name: x.name as string, topic: (x.topic || '') as string, members: (x.members || []) as string[], major, purity: top ? top[1] / d.length : 0 };
+    });
+    const room = new Map<string, string>();
+    Object.keys(ROOMS).forEach((k) => {
+      const list = teams.filter((t) => t.major === k);
+      const cap = ROOMS[k].length * 10;
+      const keep = [...list].sort((a, b) => b.purity - a.purity || list.indexOf(a) - list.indexOf(b)).slice(0, cap);
+      const ordered = list.filter((t) => keep.includes(t));
+      ordered.forEach((t, i) => room.set(t.name, ROOMS[k][Math.floor(i / 10)]));
+    });
+    const lines = teams.map((t) => [room.get(t.name) || '242 (Hall)', t.name, t.topic, t.members.join('; ')].join('|'));
+    lines.sort((a, b) => a.localeCompare(b));
+    return new Response(lines.join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
   } else return new Response('Bad request', { status: 400 });
 
   if (new URL(req.url).searchParams.get('inline') === '1') {
