@@ -67,6 +67,27 @@ export async function GET(req: Request) {
       from teams t join team_members m on m.team_id = t.id join students s on s.roll_no = m.roll_no
       order by t.name, s.roll_no`;
     r.forEach((x) => rows.push([x.name, x.leader_roll, x.roll_no, x.sname, x.dept, x.section]));
+  } else if (type === 'seatingplan') {
+    // Room = department with a strict majority of the team's members; otherwise (mixed, tie, MECH) Hall 242.
+    const ROOMS: Record<string, string[]> = { CSE: ['237 (CSE A)', '238 (CSE B)', '239 (CSE C)'], IT: ['240 (IT)'], AIDS: ['244 (AIDS)'], ECE: ['245 (ECE A)', '246 (ECE B)'], EEE: ['247 (EEE)'] };
+    const r = await sql`
+      select t.name, t.leader_roll,         (select array_agg(coalesce(s.dept, '?') order by s.roll_no) from team_members m join students s using (roll_no) where m.team_id = t.id) as depts
+      from teams t order by t.leader_roll, t.name`;
+    const teams = r.map((x) => {
+      const d: string[] = x.depts || [];
+      const cnt: Record<string, number> = {};
+      d.forEach((k) => (cnt[k] = (cnt[k] || 0) + 1));
+      const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+      const major = top && top[1] * 2 > d.length ? top[0] : null;
+      return { name: x.name as string, leader: x.leader_roll as string, d, major };
+    });
+    const byDept: Record<string, typeof teams> = {};
+    teams.forEach((t) => { if (t.major && ROOMS[t.major]) (byDept[t.major] ||= []).push(t); });
+    const room = new Map<string, string>();
+    Object.entries(byDept).forEach(([k, list]) => list.forEach((t, i) => room.set(t.name, ROOMS[k][Math.floor((i * ROOMS[k].length) / list.length)])));
+    rows = [['room', 'team', 'leader_roll', 'members_depts']];
+    teams.forEach((t) => rows.push([room.get(t.name) || '242 (Hall)', t.name, t.leader, t.d.join('/')]));
+    rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[1]).localeCompare(String(b[1])));
   } else return new Response('Bad request', { status: 400 });
 
   if (new URL(req.url).searchParams.get('inline') === '1') {
