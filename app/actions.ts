@@ -50,7 +50,7 @@ export async function requestOtpAction(fd: FormData) {
 
   const ip = await clientIp();
   // Campus Wi-Fi shares one public IP, so the per-IP limit is generous; the per-account limit is the strict one.
-  if (!(await allow(`otp-ip:${ip}`, 400, 900)) || !(await allow(`otp-id:${id}`, kind === 'staff' ? 4 : 10, kind === 'staff' ? 600 : 3600))) {
+  if (!(await allow(`otp-ip:${ip}`, 400, 900)) || !(await allow(`otp-id:${id}`, kind === 'staff' ? 4 : 30, kind === 'staff' ? 600 : 3600))) {
     go(back, 'err', 'Too many attempts. Please wait a few minutes and try again.');
   }
 
