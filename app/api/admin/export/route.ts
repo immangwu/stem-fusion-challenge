@@ -67,6 +67,14 @@ export async function GET(req: Request) {
       from teams t join team_members m on m.team_id = t.id join students s on s.roll_no = m.roll_no
       order by t.name, s.roll_no`;
     r.forEach((x) => rows.push([x.name, x.leader_roll, x.roll_no, x.sname, x.dept, x.section]));
+  } else if (type === 'unsub3') {
+    rows = [['team', 'leader', 'roll_no', 'name', 'dept', 'section', 'has_pdf3']];
+    const r = await sql`
+      select t.name, (s.roll_no = t.leader_roll) as lead, s.roll_no, s.name as sname, s.dept, s.section
+      from teams t join team_members m on m.team_id = t.id join students s on s.roll_no = m.roll_no
+      where not exists (select 1 from files f where f.team_id = t.id and f.phase = 3 and f.kind = 'pdf')
+      order by s.dept, s.section, t.name, s.roll_no`;
+    r.forEach((x) => rows.push([x.name, x.lead ? 'Y' : '', x.roll_no, x.sname, x.dept, x.section, 'no']));
   } else if (type === 'seatingplan') {
     // Room = department with a strict majority of the team's members; otherwise (mixed, tie, MECH) Hall 242.
     const ROOMS: Record<string, string[]> = { CSE: ['237 (CSE A)', '238 (CSE B)', '239 (CSE C)'], IT: ['240 (IT)'], AIDS: ['244 (AIDS)'], ECE: ['245 (ECE A)', '246 (ECE B)'], EEE: ['247 (EEE)'] };
