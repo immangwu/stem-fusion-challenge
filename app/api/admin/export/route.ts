@@ -60,7 +60,18 @@ export async function GET(req: Request) {
       left join evaluations e on e.team_id = t.id and e.phase = ${phase}
       order by t.name`;
     r.forEach((x) => rows.push([x.id, x.name, x.leader_roll, x.topic, x.filename, x.created_at ? new Date(x.created_at).toISOString() : null, x.img ? 'yes' : 'no', x.status || (x.filename ? 'not evaluated' : 'no submission')]));
+  } else if (type === 'seating') {
+    rows = [['team', 'leader_roll', 'roll_no', 'name', 'dept', 'section']];
+    const r = await sql`
+      select t.name, t.leader_roll, s.roll_no, s.name as sname, s.dept, s.section
+      from teams t join team_members m on m.team_id = t.id join students s on s.roll_no = m.roll_no
+      order by t.name, s.roll_no`;
+    r.forEach((x) => rows.push([x.name, x.leader_roll, x.roll_no, x.sname, x.dept, x.section]));
   } else return new Response('Bad request', { status: 400 });
+
+  if (new URL(req.url).searchParams.get('inline') === '1') {
+    return new Response(toCsv(rows), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
 
   return new Response('﻿' + toCsv(rows), {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${type}.csv"`, 'Cache-Control': 'no-store' },
