@@ -7,31 +7,40 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
   const stage = useRef<HTMLDivElement>(null);
   const ring = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  const zoomT = useRef(0);
-  const zoomBy = (d: number) => { zoomT.current = Math.max(-260, Math.min(300, zoomT.current + d)); };
+  const zoomT = useRef(1);
+  const zoomBy = (d: number) => { zoomT.current = Math.max(0.6, Math.min(1.7, zoomT.current + d)); };
 
-  // 3D ring: auto-rotates, drag / swipe to spin, hover to pause.
+  // Ring: faces orbit around a vertical axis only (no up/down tilt). Drag/swipe to spin, wheel or +/- to zoom.
   useEffect(() => {
-    const el = ring.current; if (!el) return;
+    const el = ring.current, st = stage.current; if (!el || !st) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let zoom = 0, angle = 0, vel = reduce ? 0 : 0.18, drag = false, lastX = 0, hover = false, raf = 0;
-    const tick = () => {
-      if (!drag && !hover) angle += vel; else if (!drag) angle += vel * 0.15;
-      if (!drag && Math.abs(vel) > 0.18) vel *= 0.96;
+    const faces = Array.from(el.children) as HTMLElement[];
+    let zoom = 1, angle = 0, vel = reduce ? 0 : 0.25, drag = false, lastX = 0, hover = false, raf = 0;
+    const draw = () => {
       zoom += (zoomT.current - zoom) * 0.12;
-      el.style.transform = `translateZ(calc(var(--r) * -1 + ${zoom.toFixed(1)}px)) rotateY(${angle}deg)`;
-      raf = requestAnimationFrame(tick);
+      if (!drag) angle += hover ? vel * 0.15 : vel;
+      if (!drag && Math.abs(vel) > 0.25) vel *= 0.96;
+      const W = st.clientWidth, R = Math.min(W * 0.4, 460) * zoom, base = Math.min(Math.max(W * 0.17, 100), 160) * zoom;
+      faces.forEach((f, i) => {
+        const th = ((angle + (i * 360) / faces.length) * Math.PI) / 180;
+        const x = Math.sin(th) * R, d = (Math.cos(th) + 1) / 2; // d: 0 = far side, 1 = front
+        const sc = 0.5 + 0.5 * d;
+        f.style.width = base + 'px';
+        f.style.transform = `translate(-50%,-50%) translateX(${x.toFixed(1)}px) scale(${sc.toFixed(3)})`;
+        f.style.zIndex = String(Math.round(d * 100));
+        f.style.opacity = String(0.35 + 0.65 * d);
+        f.style.filter = d < 0.5 ? `brightness(${(0.55 + d * 0.9).toFixed(2)})` : 'none';
+      });
+      raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(tick);
-    const st = stage.current!;
+    raf = requestAnimationFrame(draw);
     const down = (e: PointerEvent) => { drag = true; lastX = e.clientX; st.setPointerCapture(e.pointerId); };
-    const move = (e: PointerEvent) => { if (!drag) return; const dx = e.clientX - lastX; lastX = e.clientX; angle += dx * 0.45; vel = Math.max(-3, Math.min(3, dx * 0.2)) || vel; };
-    const up = () => { drag = false; if (Math.abs(vel) < 0.18) vel = 0.18; };
-    st.addEventListener('pointerdown', down); st.addEventListener('pointermove', move); st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
-    const wheel = (e: WheelEvent) => { e.preventDefault(); zoomBy(-e.deltaY * 0.6); };
-    st.addEventListener('wheel', wheel, { passive: false });
+    const move = (e: PointerEvent) => { if (!drag) return; const dx = e.clientX - lastX; lastX = e.clientX; angle += dx * 0.4; vel = Math.max(-3, Math.min(3, dx * 0.2)) || vel; };
+    const up = () => { drag = false; if (Math.abs(vel) < 0.25) vel = 0.25; };
+    const wheel = (e: WheelEvent) => { e.preventDefault(); zoomBy(-e.deltaY * 0.0015); };
     const enter = () => (hover = true), leave = () => (hover = false);
-    st.addEventListener('mouseenter', enter); st.addEventListener('mouseleave', leave);
+    st.addEventListener('pointerdown', down); st.addEventListener('pointermove', move); st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    st.addEventListener('wheel', wheel, { passive: false }); st.addEventListener('mouseenter', enter); st.addEventListener('mouseleave', leave);
     return () => { cancelAnimationFrame(raf); st.removeEventListener('pointerdown', down); st.removeEventListener('pointermove', move); st.removeEventListener('pointerup', up); st.removeEventListener('pointercancel', up); st.removeEventListener('wheel', wheel); st.removeEventListener('mouseenter', enter); st.removeEventListener('mouseleave', leave); };
   }, []);
 
@@ -63,9 +72,9 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
         <p className="sub">The organizing team that makes it all happen. Drag left or right to spin the ring. Scroll or use +/− to zoom.</p>
       </div>
       <div className="stage" ref={stage} aria-label="Rotating ring of student volunteers">
-        <div className="ring" ref={ring} style={{ ['--n' as string]: people.length }}>
+        <div className="ring" ref={ring}>
           {people.map((p, i) => (
-            <figure className="face" key={p.name} style={{ ['--i' as string]: i }}>
+            <figure className="face" key={p.name}>
               <img src={p.img} alt={p.name} draggable={false} />
               <figcaption><b>{p.name}</b><span>{p.dept}</span></figcaption>
             </figure>))}
@@ -73,9 +82,9 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
         <div className="floor" aria-hidden />
       </div>
       <div className="zoombar" role="group" aria-label="Zoom">
-        <button type="button" onClick={() => zoomBy(-120)} aria-label="Zoom out">−</button>
-        <button type="button" onClick={() => { zoomT.current = 0; }} aria-label="Reset zoom">Reset</button>
-        <button type="button" onClick={() => zoomBy(120)} aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => zoomBy(-0.2)} aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => { zoomT.current = 1; }} aria-label="Reset zoom">Reset</button>
+        <button type="button" onClick={() => zoomBy(0.2)} aria-label="Zoom in">+</button>
       </div>
       <h2 className="gh">Meet the team</h2>
       <div className="vgrid">
@@ -108,16 +117,16 @@ body{overflow-x:hidden}
 @keyframes vzoom{from{opacity:0;transform:translateZ(-300px) rotateX(40deg)}to{opacity:1;transform:none}}
 @keyframes vfade{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .vol .sub{color:#a7f3d0;margin:0}
-.vol .stage{--r:min(46vw,430px);position:relative;height:clamp(330px,52vw,470px);margin:70px auto 10px;perspective:1300px;cursor:grab;touch-action:pan-y;overflow:visible;user-select:none}
+.vol .stage{position:relative;height:clamp(330px,50vw,440px);margin:30px auto 10px;cursor:grab;touch-action:pan-y;user-select:none}
 .vol .stage:active{cursor:grabbing}
-.vol .ring{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;transform:translateZ(calc(var(--r) * -1))}
-.vol .face{--w:clamp(104px,17vw,158px);position:absolute;left:calc(var(--w) / -2);top:calc(var(--w) * -0.5);width:var(--w);margin:0;text-align:center;transform:rotateY(calc(var(--i) * (360deg / var(--n)))) translateZ(var(--r));backface-visibility:visible}
-.vol .face img{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:4px solid #f5c542;box-shadow:0 0 0 3px rgba(245,197,66,.25),0 18px 30px rgba(0,0,0,.55),0 0 28px rgba(245,197,66,.35);background:#fff;-webkit-box-reflect:below 6px linear-gradient(transparent 70%,rgba(255,255,255,.28))}
+.vol .ring{position:absolute;left:50%;top:44%;width:0;height:0}
+.vol .face{position:absolute;left:0;top:0;margin:0;text-align:center;will-change:transform}
+.vol .face img{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:4px solid #f5c542;box-shadow:0 0 0 3px rgba(245,197,66,.25),0 18px 30px rgba(0,0,0,.55),0 0 28px rgba(245,197,66,.35);background:#fff;pointer-events:none}
 .vol .face figcaption{margin-top:8px;font-size:12px;line-height:1.25;text-shadow:0 2px 6px #000}
 .vol .face figcaption b{display:block;font-size:13px}
 .vol .face figcaption span{color:#fcd34d}
 .vol .zoombar{display:flex;gap:8px;justify-content:center;margin:6px 0 0;position:relative;z-index:2}.vol .zoombar button{all:unset;cursor:pointer;min-width:42px;text-align:center;padding:6px 14px;border-radius:99px;border:1px solid rgba(245,197,66,.6);background:rgba(0,0,0,.35);color:#fcd34d;font-weight:700;font-size:15px}.vol .zoombar button:hover{background:rgba(245,197,66,.2)}
-.vol .floor{position:absolute;left:50%;bottom:6%;width:min(86vw,760px);height:90px;transform:translateX(-50%) rotateX(72deg);border-radius:50%;background:radial-gradient(ellipse at center,rgba(245,197,66,.35),rgba(245,197,66,0) 68%);filter:blur(4px);pointer-events:none}
+.vol .floor{position:absolute;left:50%;bottom:4%;width:min(86vw,760px);height:60px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse at center,rgba(245,197,66,.3),rgba(245,197,66,0) 68%);filter:blur(4px);pointer-events:none}
 .vol .gh{text-align:center;margin:30px 0 18px;font-size:22px;letter-spacing:.25em;text-transform:uppercase;color:#fcd34d}
 .vol .vgrid{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:20px;max-width:1050px;margin:0 auto;perspective:1100px}
 .vol .vcard{--rx:0deg;--ry:0deg;--gx:50%;--gy:50%;opacity:0;transform:translateY(60px) rotateX(-35deg);transition:opacity .7s var(--d,0ms),transform .8s cubic-bezier(.2,.8,.2,1) var(--d,0ms)}
