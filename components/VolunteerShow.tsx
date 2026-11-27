@@ -16,7 +16,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
     const tick = () => {
       if (!drag && !hover) angle += vel; else if (!drag) angle += vel * 0.15;
       if (!drag && Math.abs(vel) > 0.18) vel *= 0.96;
-      el.style.transform = `translateZ(calc(var(--r) * -1)) rotateX(-6deg) rotateY(${angle}deg)`;
+      el.style.transform = `translateZ(calc(var(--r) * -1)) rotateX(7deg) rotateY(${angle}deg)`;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
