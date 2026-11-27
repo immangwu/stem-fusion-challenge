@@ -8,7 +8,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
   const ring = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const zoomT = useRef(0);
-  const zoomBy = (d: number) => { zoomT.current = Math.max(-260, Math.min(420, zoomT.current + d)); };
+  const zoomBy = (d: number) => { zoomT.current = Math.max(-260, Math.min(300, zoomT.current + d)); };
 
   // 3D ring: auto-rotates, drag / swipe to spin, hover to pause.
   useEffect(() => {
@@ -108,10 +108,10 @@ body{overflow-x:hidden}
 @keyframes vzoom{from{opacity:0;transform:translateZ(-300px) rotateX(40deg)}to{opacity:1;transform:none}}
 @keyframes vfade{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .vol .sub{color:#a7f3d0;margin:0}
-.vol .stage{--r:min(46vw,430px);position:relative;height:clamp(330px,52vw,470px);margin:30px auto 10px;perspective:1300px;cursor:grab;touch-action:pan-y;overflow:visible;user-select:none}
+.vol .stage{--r:min(46vw,430px);position:relative;height:clamp(330px,52vw,470px);margin:70px auto 10px;perspective:1300px;cursor:grab;touch-action:pan-y;overflow:visible;user-select:none}
 .vol .stage:active{cursor:grabbing}
 .vol .ring{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;transform:translateZ(calc(var(--r) * -1))}
-.vol .face{--w:clamp(104px,17vw,158px);position:absolute;left:calc(var(--w) / -2);top:calc(var(--w) * -0.78);width:var(--w);margin:0;text-align:center;transform:rotateY(calc(var(--i) * (360deg / var(--n)))) translateZ(var(--r));backface-visibility:visible}
+.vol .face{--w:clamp(104px,17vw,158px);position:absolute;left:calc(var(--w) / -2);top:calc(var(--w) * -0.5);width:var(--w);margin:0;text-align:center;transform:rotateY(calc(var(--i) * (360deg / var(--n)))) translateZ(var(--r));backface-visibility:visible}
 .vol .face img{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:4px solid #f5c542;box-shadow:0 0 0 3px rgba(245,197,66,.25),0 18px 30px rgba(0,0,0,.55),0 0 28px rgba(245,197,66,.35);background:#fff;-webkit-box-reflect:below 6px linear-gradient(transparent 70%,rgba(255,255,255,.28))}
 .vol .face figcaption{margin-top:8px;font-size:12px;line-height:1.25;text-shadow:0 2px 6px #000}
 .vol .face figcaption b{display:block;font-size:13px}
