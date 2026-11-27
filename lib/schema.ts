@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const SCHEMA = `
 create table if not exists settings(key text primary key, value jsonb not null);
@@ -68,5 +68,6 @@ create table if not exists audit_log(
 alter table students add column if not exists dob_hash text;
 alter table students alter column email drop not null;
 alter table otps add column if not exists meta text;
+alter table teams add column if not exists venue text;
 create unique index if not exists students_email_uq on students(lower(email)) where email is not null;
 `;

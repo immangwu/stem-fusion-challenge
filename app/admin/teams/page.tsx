@@ -15,7 +15,7 @@ export default async function Teams({ searchParams }: { searchParams: SP }) {
   const sql = await db();
   const like = '%' + q.replace(/[%_\\]/g, '\\$&') + '%';
   const rows = await sql`
-    select t.id, t.name, t.leader_roll, t.custom->>'title' as custom_title, t.custom_status,
+    select t.id, t.name, t.venue, t.leader_roll, t.custom->>'title' as custom_title, t.custom_status,
       (select title from topics where claimed_by = t.id) as topic,
       (select count(*)::int from team_members where team_id = t.id) as size,
       coalesce((select array_agg(distinct phase::text || kind) from files where team_id = t.id), '{}') as f
@@ -29,10 +29,10 @@ export default async function Teams({ searchParams }: { searchParams: SP }) {
       <h1>Teams ({total})</h1>
       <Flash sp={sp} />
       <form className="row card" method="get"><div><label htmlFor="q">Search team or leader roll no</label><input id="q" name="q" defaultValue={q} /></div><button type="submit">Search</button></form>
-      <div className="card" style={{ overflowX: 'auto' }}><table><thead><tr><th>Team</th><th>Leader</th><th>Size</th><th>Topic</th><th>P1</th><th>P2</th><th>P3</th><th>Photos</th><th>Maths</th><th>Chem</th><th>Phys</th><th>Jury</th><th>Total</th><th>Delete</th></tr></thead><tbody>
+      <div className="card" style={{ overflowX: 'auto' }}><table><thead><tr><th>Team</th><th>Leader</th><th>Location</th><th>Size</th><th>Topic</th><th>P1</th><th>P2</th><th>P3</th><th>Photos</th><th>Maths</th><th>Chem</th><th>Phys</th><th>Jury</th><th>Total</th><th>Delete</th></tr></thead><tbody>
         {rows.map((t) => {
           const f = t.f as string[]; const r = rank.get(t.id);
-          return (<tr key={t.id}><td>{t.name}</td><td>{t.leader_roll}</td><td>{t.size}</td>
+          return (<tr key={t.id}><td>{t.name}</td><td>{t.leader_roll}</td><td>{t.venue ?? <span className="mut">–</span>}</td><td>{t.size}</td>
             <td>{t.topic ?? (t.custom_title ? `${t.custom_title} (${t.custom_status})` : <span className="mut">none</span>)}</td>
             <td>{tick(f, '1pdf')}</td><td>{tick(f, '2pdf')}</td><td>{tick(f, '3pdf')}</td>
             <td>{[1, 2, 3].map((p) => tick(f, `${p}image`)).join(' ')}</td>

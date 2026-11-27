@@ -24,8 +24,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {!s && <><Link href="/leaderboard">Leaderboard</Link><Link href="/rubrics">Rubrics</Link></>}
             {!s && <Link href="/login">Login</Link>}
             {s?.role === 'student' && (<><Link href="/dashboard">Dashboard</Link><Link href="/topics">Topics</Link><Link href="/leaderboard">Leaderboard</Link><Link href="/rubrics">Rubrics</Link></>)}
-            {s?.role === 'admin' && (<><Link href="/admin">Overview</Link><Link href="/admin/teams">Teams</Link><Link href="/admin/evaluations">Evaluation</Link><Link href="/admin/settings">Settings</Link><Link href="/jury">Jury</Link><Link href="/leaderboard">Leaderboard</Link></>)}
-            {s?.role === 'jury' && (<><Link href="/jury">Jury marks</Link><Link href="/leaderboard">Leaderboard</Link></>)}
+            {s?.role === 'admin' && (<><Link href="/admin">Overview</Link><Link href="/admin/teams">Teams</Link><Link href="/admin/evaluations">Evaluation</Link><Link href="/admin/settings">Settings</Link><Link href="/jury">Phase 4 jury marks</Link><Link href="/leaderboard">Leaderboard</Link></>)}
+            {s?.role === 'jury' && (<><Link href="/jury">Phase 4 marks</Link><Link href="/leaderboard">Leaderboard</Link></>)}
             {s && (<form action={logoutAction}><button type="submit">Logout ({s.name.split(' ')[0]})</button></form>)}
           </nav>
         </header>

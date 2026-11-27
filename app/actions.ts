@@ -13,6 +13,7 @@ import { JURY_RUBRIC } from '../lib/rubrics';
 import { importResults } from '../lib/results';
 import { parseCsv } from '../lib/csv';
 import { deleteBlobs } from '../lib/storage';
+import { assignVenues } from '../lib/seating';
 
 class UserError extends Error {}
 const str = (v: FormDataEntryValue | null, max = 500) => String(v ?? '').trim().slice(0, max);
@@ -295,18 +296,51 @@ export async function saveJuryMarksAction(fd: FormData) {
   const teamId = str(fd.get('teamId'), 50);
   const back = str(fd.get('back'), 200).startsWith('/jury') ? str(fd.get('back'), 200) : '/jury';
   await guard(back, async () => {
-    // Only the final mark (out of 40) is entered; the per-criterion breakdown stays on the paper sheets.
-    const total = Math.round(Number(fd.get('total')) * 2) / 2;
-    if (!str(fd.get('total'), 10) || !Number.isFinite(total) || total < 0 || total > JURY_RUBRIC.total) throw new UserError(`Enter the final mark from 0 to ${JURY_RUBRIC.total}.`);
-    const scores: Record<string, number> = {};
     const sql = await db();
+    // Admins have all rights: they may enter or edit marks on behalf of any juror.
+    const isAdmin = (await staffRole(me.sub))?.role === 'admin';
+    const juror = isAdmin && str(fd.get('juror'), 200) ? str(fd.get('juror'), 200) : me.sub;
     if (!(await sql`select 1 from teams where id = ${teamId}`).length) throw new UserError('Team not found.');
+    if (fd.get('del') === '1') {
+      await sql`delete from jury_marks where team_id = ${teamId} and juror = ${juror}`;
+      await audit(me.sub, 'jury_marks_deleted', { teamId, juror });
+      revalidateTag('leaderboard');
+      return 'Marks removed.';
+    }
+    const scores: Record<string, number> = {};
+    let total = 0;
+    for (const c of JURY_RUBRIC.criteria) {
+      const raw = str(fd.get('c_' + c.key), 10);
+      const v = Math.round(Number(raw) * 2) / 2;
+      if (!raw || !Number.isFinite(v) || v < 0 || v > c.max) throw new UserError(`${c.label}: enter a mark from 0 to ${c.max}.`);
+      scores[c.key] = v; total += v;
+    }
     await sql`
-      insert into jury_marks(team_id, juror, scores, total) values (${teamId}, ${me.sub}, ${sql.json(scores)}, ${total})
+      insert into jury_marks(team_id, juror, scores, total) values (${teamId}, ${juror}, ${sql.json(scores)}, ${total})
       on conflict (team_id, juror) do update set scores = excluded.scores, total = excluded.total, updated_at = now()`;
-    await audit(me.sub, 'jury_marks', { teamId, total });
+    await audit(me.sub, 'jury_marks', { teamId, juror, total, scores });
     revalidateTag('leaderboard');
-    return `Saved ${total}/${JURY_RUBRIC.total}.`;
+    return `Saved Phase 4 marks: ${total}/${JURY_RUBRIC.total}.`;
+  });
+}
+
+export async function assignVenuesAction(fd: FormData) {
+  await requireAdmin();
+  await guard('/jury', async () => {
+    const n = await assignVenues(await db(), fd.get('force') === 'on');
+    return `Venues assigned for ${n} team${n === 1 ? '' : 's'}.`;
+  });
+}
+
+export async function setTeamVenueAction(fd: FormData) {
+  const me = await requireAdmin();
+  const back = str(fd.get('back'), 200).startsWith('/jury') ? str(fd.get('back'), 200) : '/jury';
+  await guard(back, async () => {
+    const venue = str(fd.get('venue'), 60);
+    const teamId = str(fd.get('teamId'), 50);
+    await (await db())`update teams set venue = ${venue || null} where id = ${teamId}`;
+    await audit(me.sub, 'team_venue', { teamId, venue });
+    return 'Venue updated.';
   });
 }
 
