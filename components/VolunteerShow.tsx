@@ -72,7 +72,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
         <p className="sub">The organizing team that makes it all happen. Drag left or right to spin the ring. Scroll or use +/− to zoom.</p>
       </div>
       <div className="stage" ref={stage} aria-label="Rotating ring of student volunteers">
-        <div className="ring" ref={ring}>
+        <div className="vring" ref={ring}>
           {people.map((p, i) => (
             <figure className="face" key={p.name}>
               <img src={p.img} alt={p.name} draggable={false} />
@@ -119,7 +119,7 @@ body{overflow-x:hidden}
 .vol .sub{color:#a7f3d0;margin:0}
 .vol .stage{position:relative;height:clamp(330px,50vw,440px);margin:30px auto 10px;cursor:grab;touch-action:pan-y;user-select:none}
 .vol .stage:active{cursor:grabbing}
-.vol .ring{position:absolute;left:50%;top:44%;width:0;height:0}
+.vol .vring{position:absolute;left:50%;top:44%;width:0;height:0}
 .vol .face{position:absolute;left:0;top:0;margin:0;text-align:center;will-change:transform}
 .vol .face img{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:4px solid #f5c542;box-shadow:0 0 0 3px rgba(245,197,66,.25),0 18px 30px rgba(0,0,0,.55),0 0 28px rgba(245,197,66,.35);background:#fff;pointer-events:none}
 .vol .face figcaption{margin-top:8px;font-size:12px;line-height:1.25;text-shadow:0 2px 6px #000}
