@@ -85,6 +85,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
 }
 
 const CSS = `
+body{overflow-x:hidden}
 .vol{position:relative;width:100vw;margin:-22px 0 -60px calc(50% - 50vw);padding:34px 16px 80px;color:#f8fafc;background:radial-gradient(1000px 520px at 50% -5%,#0f6b4a 0,transparent 62%),radial-gradient(800px 500px at 90% 60%,#0a4a35 0,transparent 60%),#06231a;overflow:hidden;min-height:80vh;perspective:1400px}
 .vol *{box-sizing:border-box}
 .vol .sparks i{position:absolute;bottom:-10px;border-radius:50%;background:#fbbf24;box-shadow:0 0 10px 2px rgba(251,191,36,.7);opacity:0;animation:vfloat linear infinite}
