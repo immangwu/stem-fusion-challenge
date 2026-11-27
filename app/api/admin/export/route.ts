@@ -19,6 +19,11 @@ export async function GET(req: Request) {
     const r = await sql`select s.roll_no, s.name, s.email, s.dept, s.section from students s
       left join team_members m on m.roll_no = s.roll_no where m.roll_no is null order by s.dept, s.section, s.roll_no`;
     r.forEach((x) => rows.push([x.roll_no, x.name, x.email, x.dept, x.section]));
+  } else if (type === 'members') {
+    rows = [['team', 'roll_no', 'name', 'dept', 'section', 'email', 'is_leader']];
+    const r = await sql`select t.name as team, s.roll_no, s.name, s.dept, s.section, s.email, (t.leader_roll = s.roll_no) as lead
+      from teams t join team_members m on m.team_id = t.id join students s on s.roll_no = m.roll_no order by t.name, (t.leader_roll = s.roll_no) desc, s.name`;
+    r.forEach((x) => rows.push([x.team, x.roll_no, x.name, x.dept, x.section, x.email, x.lead ? 'yes' : 'no']));
   } else if (type === 'teams') {
     rows = [['team', 'leader_roll', 'members', 'topic', 'custom_topic', 'custom_status', 'p1_pdf', 'p2_pdf', 'p3_pdf', 'p1_img', 'p2_img', 'p3_img']];
     const r = await sql`
