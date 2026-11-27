@@ -7,16 +7,19 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
   const stage = useRef<HTMLDivElement>(null);
   const ring = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
+  const zoomT = useRef(0);
+  const zoomBy = (d: number) => { zoomT.current = Math.max(-260, Math.min(420, zoomT.current + d)); };
 
   // 3D ring: auto-rotates, drag / swipe to spin, hover to pause.
   useEffect(() => {
     const el = ring.current; if (!el) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let angle = 0, vel = reduce ? 0 : 0.18, drag = false, lastX = 0, hover = false, raf = 0;
+    let zoom = 0, angle = 0, vel = reduce ? 0 : 0.18, drag = false, lastX = 0, hover = false, raf = 0;
     const tick = () => {
       if (!drag && !hover) angle += vel; else if (!drag) angle += vel * 0.15;
       if (!drag && Math.abs(vel) > 0.18) vel *= 0.96;
-      el.style.transform = `translateZ(calc(var(--r) * -1)) rotateX(7deg) rotateY(${angle}deg)`;
+      zoom += (zoomT.current - zoom) * 0.12;
+      el.style.transform = `translateZ(calc(var(--r) * -1 + ${zoom.toFixed(1)}px)) rotateY(${angle}deg)`;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -25,9 +28,11 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
     const move = (e: PointerEvent) => { if (!drag) return; const dx = e.clientX - lastX; lastX = e.clientX; angle += dx * 0.45; vel = Math.max(-3, Math.min(3, dx * 0.2)) || vel; };
     const up = () => { drag = false; if (Math.abs(vel) < 0.18) vel = 0.18; };
     st.addEventListener('pointerdown', down); st.addEventListener('pointermove', move); st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    const wheel = (e: WheelEvent) => { e.preventDefault(); zoomBy(-e.deltaY * 0.6); };
+    st.addEventListener('wheel', wheel, { passive: false });
     const enter = () => (hover = true), leave = () => (hover = false);
     st.addEventListener('mouseenter', enter); st.addEventListener('mouseleave', leave);
-    return () => { cancelAnimationFrame(raf); st.removeEventListener('pointerdown', down); st.removeEventListener('pointermove', move); st.removeEventListener('pointerup', up); st.removeEventListener('pointercancel', up); st.removeEventListener('mouseenter', enter); st.removeEventListener('mouseleave', leave); };
+    return () => { cancelAnimationFrame(raf); st.removeEventListener('pointerdown', down); st.removeEventListener('pointermove', move); st.removeEventListener('pointerup', up); st.removeEventListener('pointercancel', up); st.removeEventListener('wheel', wheel); st.removeEventListener('mouseenter', enter); st.removeEventListener('mouseleave', leave); };
   }, []);
 
   // Grid cards: tilt + glare toward the pointer; reveal on scroll.
@@ -55,7 +60,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
       <div className="vhero">
         <div className="eyebrow">HIVE ◆ STEM FUSION CHALLENGE ◆ SPARKS-2K26</div>
         <h1 className="title"><span>Our Student</span> Volunteers</h1>
-        <p className="sub">The organizing team that makes it all happen. Drag the ring to spin it.</p>
+        <p className="sub">The organizing team that makes it all happen. Drag left or right to spin the ring. Scroll or use +/− to zoom.</p>
       </div>
       <div className="stage" ref={stage} aria-label="Rotating ring of student volunteers">
         <div className="ring" ref={ring} style={{ ['--n' as string]: people.length }}>
@@ -66,6 +71,11 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
             </figure>))}
         </div>
         <div className="floor" aria-hidden />
+      </div>
+      <div className="zoombar" role="group" aria-label="Zoom">
+        <button type="button" onClick={() => zoomBy(-120)} aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => { zoomT.current = 0; }} aria-label="Reset zoom">Reset</button>
+        <button type="button" onClick={() => zoomBy(120)} aria-label="Zoom in">+</button>
       </div>
       <h2 className="gh">Meet the team</h2>
       <div className="vgrid">
@@ -98,7 +108,7 @@ body{overflow-x:hidden}
 @keyframes vzoom{from{opacity:0;transform:translateZ(-300px) rotateX(40deg)}to{opacity:1;transform:none}}
 @keyframes vfade{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .vol .sub{color:#a7f3d0;margin:0}
-.vol .stage{--r:min(46vw,430px);position:relative;height:clamp(330px,52vw,470px);margin:30px auto 10px;perspective:1300px;cursor:grab;touch-action:pan-y;user-select:none}
+.vol .stage{--r:min(46vw,430px);position:relative;height:clamp(330px,52vw,470px);margin:30px auto 10px;perspective:1300px;cursor:grab;touch-action:pan-y;overflow:visible;user-select:none}
 .vol .stage:active{cursor:grabbing}
 .vol .ring{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;transform:translateZ(calc(var(--r) * -1))}
 .vol .face{--w:clamp(104px,17vw,158px);position:absolute;left:calc(var(--w) / -2);top:calc(var(--w) * -0.78);width:var(--w);margin:0;text-align:center;transform:rotateY(calc(var(--i) * (360deg / var(--n)))) translateZ(var(--r));backface-visibility:visible}
@@ -106,6 +116,7 @@ body{overflow-x:hidden}
 .vol .face figcaption{margin-top:8px;font-size:12px;line-height:1.25;text-shadow:0 2px 6px #000}
 .vol .face figcaption b{display:block;font-size:13px}
 .vol .face figcaption span{color:#fcd34d}
+.vol .zoombar{display:flex;gap:8px;justify-content:center;margin:6px 0 0;position:relative;z-index:2}.vol .zoombar button{all:unset;cursor:pointer;min-width:42px;text-align:center;padding:6px 14px;border-radius:99px;border:1px solid rgba(245,197,66,.6);background:rgba(0,0,0,.35);color:#fcd34d;font-weight:700;font-size:15px}.vol .zoombar button:hover{background:rgba(245,197,66,.2)}
 .vol .floor{position:absolute;left:50%;bottom:6%;width:min(86vw,760px);height:90px;transform:translateX(-50%) rotateX(72deg);border-radius:50%;background:radial-gradient(ellipse at center,rgba(245,197,66,.35),rgba(245,197,66,0) 68%);filter:blur(4px);pointer-events:none}
 .vol .gh{text-align:center;margin:30px 0 18px;font-size:22px;letter-spacing:.25em;text-transform:uppercase;color:#fcd34d}
 .vol .vgrid{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:20px;max-width:1050px;margin:0 auto;perspective:1100px}
