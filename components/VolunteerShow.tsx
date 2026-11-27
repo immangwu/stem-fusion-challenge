@@ -52,7 +52,7 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
     <div ref={root} className="vol">
       <style>{CSS}</style>
       <div className="sparks" aria-hidden>{Array.from({ length: 26 }).map((_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 9) * -1.3}s`, animationDuration: `${9 + (i % 7)}s`, width: 3 + (i % 3), height: 3 + (i % 3) }} />)}</div>
-      <div className="hero">
+      <div className="vhero">
         <div className="eyebrow">HIVE ◆ STEM FUSION CHALLENGE ◆ SPARKS-2K26</div>
         <h1 className="title"><span>Our Student</span> Volunteers</h1>
         <p className="sub">The organizing team that makes it all happen. Drag the ring to spin it.</p>
@@ -85,11 +85,11 @@ export default function VolunteerShow({ people }: { people: Vol[] }) {
 }
 
 const CSS = `
-.vol{position:relative;margin:-22px -16px 0;padding:34px 16px 60px;color:#f8fafc;background:radial-gradient(1000px 520px at 50% -5%,#0f6b4a 0,transparent 62%),radial-gradient(800px 500px at 90% 60%,#0a4a35 0,transparent 60%),#06231a;overflow:hidden;min-height:80vh;perspective:1400px}
+.vol{position:relative;width:100vw;margin:-22px 0 -60px calc(50% - 50vw);padding:34px 16px 80px;color:#f8fafc;background:radial-gradient(1000px 520px at 50% -5%,#0f6b4a 0,transparent 62%),radial-gradient(800px 500px at 90% 60%,#0a4a35 0,transparent 60%),#06231a;overflow:hidden;min-height:80vh;perspective:1400px}
 .vol *{box-sizing:border-box}
 .vol .sparks i{position:absolute;bottom:-10px;border-radius:50%;background:#fbbf24;box-shadow:0 0 10px 2px rgba(251,191,36,.7);opacity:0;animation:vfloat linear infinite}
 @keyframes vfloat{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:.9}100%{transform:translateY(-85vh) translateX(30px);opacity:0}}
-.vol .hero{position:relative;text-align:center;max-width:900px;margin:0 auto}
+.vol .vhero{position:relative;text-align:center;max-width:900px;margin:0 auto}
 .vol .eyebrow{letter-spacing:.28em;font-size:12px;color:#fcd34d;animation:vfade 1s both}
 .vol .title{font-size:clamp(34px,7vw,68px);line-height:1.05;margin:12px 0 8px;font-weight:800;background:linear-gradient(100deg,#fff 20%,#fde68a 45%,#f59e0b 60%,#fff 85%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:vshine 5s linear infinite,vzoom 1.1s cubic-bezier(.2,.8,.2,1) both;text-shadow:0 18px 40px rgba(0,0,0,.4)}
 .vol .title span{display:block;font-size:.5em;letter-spacing:.2em;text-transform:uppercase;font-weight:600}
