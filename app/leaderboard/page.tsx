@@ -29,7 +29,7 @@ export default async function Leaderboard({ searchParams }: { searchParams: SP }
   const hidden = tab.phase ? !pub[tab.phase] : view === 'jury' ? !showJury : false;
   const rows = rankRows(raw, showJury, pub, view);
   const href = (v: LbView) => `/leaderboard?view=${v}${preview ? '&preview=1' : ''}`;
-  const outOf = view === 'jury' ? 40 : view === 'overall' ? 60 + (showJury ? 40 : 0) : 20;
+  const outOf = view === 'jury' ? 40 : view === 'overall' ? 60 + (showJury ? 40 : 0) : 20 + (showJury ? 40 : 0);
   return (
     <>
       <LogoBar />
@@ -43,7 +43,7 @@ export default async function Leaderboard({ searchParams }: { searchParams: SP }
         <div className="card mut">{view === 'jury' ? 'Jury marks will be published after the final round.' : `The ${tab.label} results will appear here once they are published.`}</div>
       ) : (<>
         <p className="small mut">
-          {view === 'overall' ? `Maths (20) + Chemistry (20) + Physics (20)${showJury ? ' + Jury (40)' : ''}, published phases only. ${TIEBREAK}` : `${tab.label} marks out of ${outOf}. Teams with the same marks share a rank.`}
+          {view === 'overall' ? `Maths (20) + Chemistry (20) + Physics (20)${showJury ? ' + Jury (40)' : ''}, published phases only. ${TIEBREAK}` : view === 'jury' ? `Jury marks out of 40. Teams with the same marks share a rank.` : showJury ? `${tab.label} (20) + final round jury marks (40) = out of ${outOf}. Ties go to the higher jury mark; teams still level share a rank.` : `${tab.label} marks out of ${outOf}. Teams with the same marks share a rank.`}
         </p>
         <LeaderboardTable rows={rows} showJury={showJury} mine={mine} view={view} />
       </>)}

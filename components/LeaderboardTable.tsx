@@ -6,7 +6,7 @@ export default function LeaderboardTable({ rows, showJury, mine, limit, view = '
   return (
     <div className="card" style={{ overflowX: 'auto' }}>
       <table>
-        <thead><tr><th>Rank</th><th>Team</th><th>Team leader</th><th>Team members</th>{view === 'overall' ? <><th>Maths</th><th>Chem</th><th>Physics</th>{showJury && <th>Jury</th>}<th>Total</th></> : <th>{{ maths: 'Maths (20)', chemistry: 'Chemistry (20)', physics: 'Physics (20)', jury: 'Jury (40)' }[view]}</th>}</tr></thead>
+        <thead><tr><th>Rank</th><th>Team</th><th>Team leader</th><th>Team members</th>{view === 'overall' ? <><th>Maths</th><th>Chem</th><th>Physics</th>{showJury && <th>Jury</th>}<th>Total</th></> : (view === 'jury' || !showJury) ? <th>{{ maths: 'Maths (20)', chemistry: 'Chemistry (20)', physics: 'Physics (20)', jury: 'Jury (40)' }[view]}</th> : <><th>{{ maths: 'Maths (20)', chemistry: 'Chemistry (20)', physics: 'Physics (20)' }[view]}</th><th>Final round (40)</th><th>Total (60)</th></>}</tr></thead>
         <tbody>
           {list.map((r) => (
             <tr key={r.id} className={r.id === mine ? 'me' : ''}>
@@ -14,9 +14,10 @@ export default function LeaderboardTable({ rows, showJury, mine, limit, view = '
               <td>{r.name}{r.id === mine ? ' (you)' : ''}</td>
               <td>{r.leader ?? '–'}</td>
               <td className="small">{r.members && r.members.length ? r.members.join(', ') : '–'}</td>
-              {view === 'overall' ? <><td>{n1(r.p1)}</td><td>{n1(r.p2)}</td><td>{n1(r.p3)}</td>{showJury && <td>{n1(r.jury)}</td>}<td><b>{n1(r.total)}</b></td></> : <td><b>{n1(r.total)}</b></td>}
+              {view === 'overall' ? <><td>{n1(r.p1)}</td><td>{n1(r.p2)}</td><td>{n1(r.p3)}</td>{showJury && <td>{n1(r.jury)}</td>}<td><b>{n1(r.total)}</b></td></> 
+                : (view === 'jury' || !showJury) ? <td><b>{n1(r.total)}</b></td> : <><td>{n1(view === 'maths' ? r.p1 : view === 'chemistry' ? r.p2 : r.p3)}</td><td>{n1(r.jury)}</td><td><b>{n1(r.total)}</b></td></>}
             </tr>))}
-          {!list.length && <tr><td colSpan={view === 'overall' ? (showJury ? 9 : 8) : 5} className="mut">No teams yet.</td></tr>}
+          {!list.length && <tr><td colSpan={view === 'overall' ? (showJury ? 9 : 8) : (view !== 'jury' && showJury) ? 7 : 5} className="mut">No teams yet.</td></tr>}
         </tbody>
       </table>
     </div>

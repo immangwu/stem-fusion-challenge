@@ -57,11 +57,12 @@ export const ALL_PUB = { 1: true, 2: true, 3: true } as const;
 export function rankRows(rows: LbRow[], withJury: boolean, pub: Record<1 | 2 | 3, boolean> = { ...ALL_PUB }, view: LbView = 'overall'): LbRow[] {
   const list = rows.map((r) => {
     const p1 = pub[1] ? r.p1 : null, p2 = pub[2] ? r.p2 : null, p3 = pub[3] ? r.p3 : null, jury = withJury ? r.jury : null;
-    const total = view === 'maths' ? p1 ?? 0 : view === 'chemistry' ? p2 ?? 0 : view === 'physics' ? p3 ?? 0 : view === 'jury' ? jury ?? 0
+    const j = jury ?? 0;
+    const total = view === 'maths' ? (p1 ?? 0) + j : view === 'chemistry' ? (p2 ?? 0) + j : view === 'physics' ? (p3 ?? 0) + j : view === 'jury' ? j
       : (p1 ?? 0) + (p2 ?? 0) + (p3 ?? 0) + (jury ?? 0);
     return { ...r, p1, p2, p3, jury, total, rank: 0 };
   });
-  const key = (r: LbRow) => view === 'overall' ? [r.total, r.jury ?? 0, r.p3 ?? 0, r.p2 ?? 0, r.p1 ?? 0] : [r.total];
+  const key = (r: LbRow) => view === 'overall' ? [r.total, r.jury ?? 0, r.p3 ?? 0, r.p2 ?? 0, r.p1 ?? 0] : view === 'jury' ? [r.total] : [r.total, r.jury ?? 0];
   list.sort((a, b) => {
     const ka = key(a), kb = key(b);
     for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i];
